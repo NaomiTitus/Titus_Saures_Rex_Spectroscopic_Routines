@@ -51,6 +51,9 @@ This is the script containing all the functions for the reductions.  You should 
   *	ap_extract():  Summed extraction, sky subtraction, generates S/N plot
   *	wavelength():  Apply wavelength calibration
   *	flux_calibration():  Applies flux calibration
+  *	    combine_dat():  Combines spectra
+  *     normalise():  Normalise spectra
+  *     smoothing():  Smooths spectra 
 
 #### <ins>spec.py:</ins>
 
