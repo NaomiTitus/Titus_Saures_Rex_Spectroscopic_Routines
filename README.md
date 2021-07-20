@@ -18,6 +18,9 @@ The pipeline uses native Python routines for the following tasks:
        * Optimal extraction
    * Wavelength calibration
    * Flux calibration
+   * Smoothing
+   * Combining 1D spectra
+   * Normalise 1D spectra
 
 ### 2.  Dependancies (Python 3):
 
