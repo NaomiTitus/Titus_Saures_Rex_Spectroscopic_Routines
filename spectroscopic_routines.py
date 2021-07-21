@@ -2014,7 +2014,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
             xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
             plt.plot(xwav, respfn(xwav))
             plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
+            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
             plt.savefig(file_name_std+'_fluxcal_response.png')
             plt.close()
             #
