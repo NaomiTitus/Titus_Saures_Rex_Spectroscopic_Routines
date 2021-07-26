@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = True
+apply_flux_cal = False
 
 raw_files_prefix = 'a'
 
@@ -84,11 +84,12 @@ manual_trace = False
 manual_poly_order = 3
 manual_x = [0,500,1175,1976]
 manual_y = [22.1,23.87,26.13,27.42]
+trace_prominence = 300
 tolerance = 3
-trace_width = 2
+trace_width = None
 poly_order = 3
 fmask = (1,) 
-nsteps = 30
+nsteps = 25
 recenter = True 
 prevtrace = (0,)
 bigbox = 15 
@@ -106,7 +107,7 @@ display_optimal = False
 ################################
 
 apwidth = None
-skysep = 4
+skysep = 5
 skywidth = 6
 skydeg = 1
 coaddN = 1
@@ -244,6 +245,7 @@ if run_pipeline is True:
 	    		    	k,
 	    		    	y0_trace = y0_trace,
 	    		    	yf_trace = yf_trace, 
+	    		    	trace_prominence = trace_prominence,
 	    		    	manual_trace = manual_trace,
 	    		    	manual_poly_order = manual_poly_order,
 	    		    	manual_x = manual_x,
@@ -315,6 +317,7 @@ if run_pipeline is True:
 	    		    	k,
 	    				y0_trace = y0_trace, 
 	    				yf_trace = yf_trace,
+	    				trace_prominence = trace_prominence,
 	    				manual_trace = manual_trace,
 	    				manual_poly_order = manual_poly_order,
 	    		    	manual_x = manual_x,

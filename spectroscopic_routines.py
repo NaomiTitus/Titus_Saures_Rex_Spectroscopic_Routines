@@ -758,7 +758,9 @@ def optimal(image_raw, sky, xs, ys, nx, ny, yvals,trace_c,display):
 
 
 
-def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_poly_order, manual_x, manual_y, 
+def ap_trace(image, object_keyword,
+    trace_prominence, y0_trace, yf_trace, 
+    manual_trace, manual_poly_order, manual_x, manual_y, 
     tolerance, trace_width, fmask=(1,), nsteps=20,
     recenter=False, prevtrace=(0,), bigbox=15, Saxis=1, poly_order=2, 
     display=False):
@@ -776,6 +778,8 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
         >>> hdu = fits.open('file.fits')  # doctest: +SKIP
         >>> img = hdu[0].data  # doctest: +SKIP
     object_keyword: Keyword defined in header that indicates target's name
+    trace_prominence: float 
+        Sets level to search for trace peak.  
     y0_trace : pixel number (int),
         The centre of the trace (y-value) at x = 0.  Sets start of trace position.
         Especially important when there is more than one trace on the ccd.
@@ -880,7 +884,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
     if (recenter is True) and (len(prevtrace)>10):
         peak_guess[2] = np.nanmedian(prevtrace)
 
-    # peaks, _ = find_peaks(ztot[np.isfinite(ztot)], prominence=200)
+    peaks, _ = find_peaks(ztot[np.isfinite(ztot)], prominence=trace_prominence)
     # plt.plot(yi[np.isfinite(ztot)], ztot[np.isfinite(ztot)])
     # plt.plot(peaks, ztot[np.isfinite(ztot)][peaks], "x")
     # plt.show()
@@ -936,7 +940,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
             zi = img_window[xbins[i]:xbins[i+1], ydata2].sum(axis=Saxis)
 
         # plt.clf()
-        peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=.5,threshold=tolerance)
+        peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=trace_prominence,threshold=tolerance)
         # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)])
         # plt.plot(yi[np.isfinite(ztot)][peaks], zi[np.isfinite(ztot)][peaks], "x")
         # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)],'r')
@@ -963,8 +967,9 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
             trace_next = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
             pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_next, 2.]
             popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess,
-                 bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
-                ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
+                bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
+                #  bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
+                # ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
             # print (trace_next,popt[2])
             if abs(yvals_line[i]-popt[2]) > tolerance:
                 y1_trace = yvals_line[i]
@@ -994,7 +999,9 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
     Mybins = ybins[:-1]
 
     if trace_width == None:
-        myfwhm = max(fwhm)
+        myfwhm = max(fwhm)*1.2
+        # print (fwhm, myfwhm)
+        # input()
     else:
         myfwhm = trace_width
 
@@ -1008,7 +1015,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
         mybins = []
         for i in range(len(x)-1):
             d = y[i+1] - y[i] 
-            print (d)
+            # print (d)
             if d < .5*tolerance:
                 mxbins.append(x[i])
                 mybins.append(y[i])
@@ -1031,7 +1038,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
 
     if display is True:
         plt.title('Gaussian fitted to trace of ' + target_name)
-        plt.legend(loc='best')
+        # plt.legend(loc='best')
         plt.subplot(1, 2, 2)
         plt.title('Fitted centers of trace')
         plt.plot(mxbins,mybins,'k.')
@@ -1059,7 +1066,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
     
     if display is False:
         plt.title('Gaussian fitted to trace of ' + target_name)
-        plt.legend(loc='best')
+        # plt.legend(loc='best')
         plt.subplot(1, 2, 2)
         plt.title('Fitted centers of trace')
         plt.plot(mxbins,mybins,'k.')
@@ -1086,7 +1093,7 @@ def ap_trace(image, object_keyword, y0_trace, yf_trace, manual_trace, manual_pol
         plt.close()
 
     plt.close()
-    print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
+    # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
     # print (my, myfwhm)
     if manual_trace is True:
         return my, myfwhm, ap_spl, my_man, ap_spl_man
@@ -2085,7 +2092,7 @@ def combine_dat(data_files,out_file,spectrum_keyword,wavelength_keyword,combine_
     lam_min_id, lam_min = np.array([i[wavelength_keyword].min() for i in d]).argmax(), max([i[wavelength_keyword].min() for i in d])
     lam_max_id, lam_max = np.array([i[wavelength_keyword].max() for i in d]).argmin(), min([i[wavelength_keyword].max() for i in d])
 
-    print (lam_min_id, lam_min,lam_max_id, lam_max)
+    # print (lam_min_id, lam_min,lam_max_id, lam_max)
 
 
     df3 = pd.DataFrame()
