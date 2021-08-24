@@ -1935,7 +1935,15 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # https://www.eso.org/sci/observing/tools/standards/spectra/
     file_name = science_spec.split('.')[0].split('_reduced')[0]
     file_name_std = standard_reduced_spec.split('.')[0].split('_reduced')[0]
-    w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
+
+    standard_spec = np.loadtxt(standard_reduced_spec,skiprows=1,unpack=True)
+    
+    if len(standard_spec) == 3:
+        w_stand, sum_stand = standard_spec[0], standard_spec[1]
+
+    if len(standard_spec) == 5:
+        w_stand, sum_stand, opt_stand = standard_spec[0], standard_spec[1], standard_spec[3]
+    # w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
 
     data =  np.loadtxt(science_spec,skiprows=1,unpack=True)
     if len(data) == 3:
@@ -1955,7 +1963,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/okestan/ffeige67.dat', dtype=dtype)
     # calspec = np.genfromtxt('fltt3218.dat', dtype=dtype)
 
-    try:
+    def response(w,f):
         if standard_name == 'ltt3218':
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt3218.dat',dtype=dtype)
         if standard_name == 'eg21':
@@ -1983,79 +1991,99 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         # fit a spline to the ratios to determine the response function
         t = waves[w][1:-2:25]
         respfn = LSQUnivariateSpline(waves[w], ratios[w], t)
+        return respfn, waves, ratios, w, std_spec, calspec
+
+    try:
+        if len(data) == 3 :
+                respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+                respfn_optimal = None
+        elif (len(data) == 5) and (len(standard_spec) == 5):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal, waves_optimal, ratios_optimal, w_optimal, std_spec_optimal, calspec_optimal = response(w_stand, opt_stand)
 
         f = open(science_spec.split('_reduced.dat')[0]+'_fluxcal.dat','w')
-        if optimal is not None:
+        if respfn_optimal is not None:
             f.write('wavelength spec_sum spec_optimal\n')
             for ii in range(7,len(waves_cor)-3):
-                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn(waves_cor[ii])))
+                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn_optimal(waves_cor[ii])))
             f.close()
         else:
             f.write('wavelength spec_sum\n')
             for ii in range(7,len(waves_cor)-3):
                 f.write('%g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii])))
             f.close()
-        # compare the tabulated and extracted flux densities (applying the response function)
-        if display is True:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
+        
+        #
+        #Plot response function
+        #
+        if respfn_optimal is not None:
+            plt.subplot(211)
+        plt.title('Calibrating the standard:' + standard_reduced_spec.split('_reduced.dat')[0])
+        plt.plot(waves[w], ratios[w], 'ro',ms=1.,label='Summed spectrum')
+        xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
+        plt.plot(xwav, respfn(xwav))
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
+            plt.plot(waves_optimal[w_optimal], ratios_optimal[w_optimal], 'ro',ms=1.,label='Optimal spectrum')
+            xwav = np.linspace(waves_optimal[w_optimal][1], waves_optimal[w_optimal][-1], 1000)
+            plt.plot(xwav, respfn_optimal(xwav))
             plt.xlabel('Wavelength ($\AA$)')
             plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
+            plt.legend(loc=1)
+        
+        plt.savefig(file_name_std+'_fluxcal_response.png')
+        if (display is True):
             plt.show()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.legend(loc='best')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.show()
-        if display is False:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
-            plt.close()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.close()
-        if display is True:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.show()
-        if display is False:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.close()
+        plt.clf()
+
         #
+        #Plot calibrated standard
+        #
+        if respfn_optimal is not None:
+            plt.subplot(211)
+
+        plt.title('Calibrated standard: ' + standard_reduced_spec)
+        plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+        plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.yscale('log')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec)
+            plt.plot(calspec_optimal['wav'][7:-3], calspec_optimal['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+            plt.plot(waves_optimal[7:-3], std_spec_optimal[7:-3] / respfn_optimal(waves_optimal[7:-3]), label='Optimal extracted spectrum')
+            plt.xlabel('Wavelength ($\AA$)')
+            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+            plt.yscale('log')
+            plt.legend(loc=1)
+
+        plt.savefig(file_name_std+'_fluxcal_standard.png')
+        if display is True:
+            plt.show()
+        plt.clf()
+        #
+        # Plot flux calibrated spectra
+        #
+        plt.figure(figsize=(10, 5))
+        plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
+        if optimal is not None:
+            plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn_optimal(waves_cor[7:-3]),label='Optimal trace',color='orange')
+        plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
+        plt.legend(loc='best')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
+        if display is True:
+            plt.show()
+ 
     except NameError:
         print ('Standard not found, add standard eso url to script')
         print ('File: '+science_spec)

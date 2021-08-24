@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
-run_pipeline = True
-apply_flux_cal = False
+run_pipeline = False
+apply_flux_cal = True
 
 raw_files_prefix = 'a'
 
@@ -397,7 +397,7 @@ if apply_flux_cal is True:
 	
 	if len(standard) != None:
 		for k in reduced_data_files:
-		    flux_callibration(
+			flux_callibration(
 		    	standard_reduced_spec = standard[0], 
 		    	standard_name = standard_name[0], 
 		    	science_spec = k,
