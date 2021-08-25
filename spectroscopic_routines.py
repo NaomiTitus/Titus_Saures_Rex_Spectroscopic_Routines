@@ -1,6 +1,7 @@
 # python modules that we will use
 import os
 import numpy as np
+import pandas as pd
 import numpy.ma as ma
 from astropy.io import fits
 import glob
@@ -999,7 +1000,7 @@ def ap_trace(image, object_keyword,
     Mybins = ybins[:-1]
 
     if trace_width == None:
-        myfwhm = max(fwhm)*1.2
+        myfwhm = max(fwhm)*1.2*.5
         # print (fwhm, myfwhm)
         # input()
     else:
