@@ -1,6 +1,7 @@
 # python modules that we will use
 import os
 import numpy as np
+import pandas as pd
 import numpy.ma as ma
 from astropy.io import fits
 import glob
