@@ -906,16 +906,18 @@ def ap_trace(image, object_keyword,
 
     # Manual trace
 
-    if manual_trace is True:
-        def man_fit(manual_x,manual_y,manual_poly_order):
+    def man_fit(manual_x,manual_y,manual_poly_order):
             ap_spl_man = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
             p_man = np.poly1d(ap_spl_man[0])
             my_man = p_man(xbins) #+ trace_ymin
             show_image(img)
             plt.plot(xbins,my_man,'--r')
             plt.plot(manual_x,manual_y,'or')
+            plt.legend(loc=1)
             plt.show()
             return ap_spl_man, p_man, my_man
+
+    if manual_trace is True:
         ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
         adjust = input('Would you like to adjust trace positions? (y/n) ')
         while adjust == 'y':
@@ -951,7 +953,6 @@ def ap_trace(image, object_keyword,
         # input('Enter')
 
         trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-        # tolerance = 2
     
         if i == 0:
             # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
@@ -996,8 +997,10 @@ def ap_trace(image, object_keyword,
 
     # input()
 
+
     Mxbins = (xbins[:-1]+xbins[1:]) / 2.
     Mybins = ybins[:-1]
+
 
     if trace_width == None:
         myfwhm = max(fwhm)*1.2*.5
@@ -1006,9 +1009,54 @@ def ap_trace(image, object_keyword,
     else:
         myfwhm = trace_width
 
-    # mxbins[0] = 0
-    # mybins[0] =  5.29467085
-    # print (mxbins,mybins)
+    if myfwhm < 1: # When something goes wrong with the tracing and your FWHM is wrong
+        plt.clf()
+        plt.close()
+        # Show trace 
+        plt.title('{} trace unsuccessful, note a few x & y points for trace'.format(target_name))
+        show_image(img)
+        plt.show()
+        manual_x = '10 740 1391 1913'.split(' ') #input('Add list of x posiitons (e.g 10 50 100): ').split(' ')
+        manual_y = '27.9 29.9 31.9 33'.split(' ') #input('Add list of y posiitons (e.g 10 11 15): ').split(' ')
+        manual_poly_order = 3 #int(input('Enter polynomial order for fitting: '))
+        manual_x = [float(i) for i in manual_x]
+        manual_y = [float(i) for i in manual_y]
+        
+        ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+        adjust = input('Would you like to adjust trace positions? (y/n) ')
+        while adjust == 'y':
+            manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
+            manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
+            ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+            adjust = input('Would you like to adjust trace positions? (y/n) ')
+        if adjust == 'n':
+            man_peaks = np.zeros(len(manual_x))
+            for index in range(len(manual_x)):
+                # print (index, int(manual_x[index]), int(manual_y[index]))
+                # print (img[19:29,740])
+                # input()
+                peaks, _ = find_peaks(img[int(manual_y[index])-10:int(manual_y[index])+10,int(manual_x[index])], prominence=trace_prominence*.1)
+                # print ('ok1')
+                # input()
+                xx = np.linspace(manual_y[index]-10,manual_y[index]+10,20)
+                yy = img[int(manual_y[index])-10:int(manual_y[index])+10,int(manual_x[index])]
+                print (np.linspace(manual_y[index]-10,manual_y[index]+10,20)[peaks])
+                if len(peaks) != 0:
+                    man_peaks[index] =  xx[peaks][np.argmin(np.abs(manual_y[index] - xx[peaks]))]
+                if len(peaks) == 0:
+                    man_peaks[index] = np.na
+                # print ('ok2')
+                # input()
+                plt.plot(xx,yy)
+                plt.plot(xx[peaks], yy[peaks], "x",label='Column number: {}'.format(manual_x[index]))
+                plt.legend(loc=1)
+                plt.show()
+            print (man_peaks)
+            input()
+            show_image(img)
+            plt.plot(manual_x,man_peaks,'--','r')
+            plt.show()
+            input()
 
     
     def distance(x,y,tolerance):
@@ -1024,7 +1072,6 @@ def ap_trace(image, object_keyword,
 
     mxbins, mybins = distance(Mxbins,Mybins,tolerance)
 
-
     ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
     print ('residuals = ',ap_spl[4])
 
@@ -1033,8 +1080,6 @@ def ap_trace(image, object_keyword,
     # interpolate the spline to 1 position per column
     mx = np.arange(0, img_window.shape[Saxis])
     my = p(mx) #+ trace_ymin
-
-
 
 
     if display is True:
@@ -1094,6 +1139,7 @@ def ap_trace(image, object_keyword,
         plt.close()
 
     plt.close()
+
     # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
     # print (my, myfwhm)
     if manual_trace is True:

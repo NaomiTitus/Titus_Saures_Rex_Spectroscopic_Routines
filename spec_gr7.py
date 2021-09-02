@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = True
+apply_flux_cal = False
 
 raw_files_prefix = 'a'
 
@@ -78,7 +78,7 @@ border_mode = 'mirror'
 ###### Trace Parameters ########
 ################################
 
-y0_trace = 28
+y0_trace = 27.8
 yf_trace = 33.8
 manual_trace = False
 manual_poly_order = 3
@@ -87,7 +87,7 @@ manual_y = [22.1,23.87,26.13,27.42]
 trace_prominence = 300
 tolerance = 3
 trace_width = None
-poly_order = 3
+poly_order = 2
 fmask = (1,) 
 nsteps = 25
 recenter = True 
@@ -242,7 +242,7 @@ if run_pipeline is True:
 	    		    image_raw, sky_subtracted, sky, xs, ys, nx, ny, yvals = twodsky(k,object_keyword=object_keyword)
 	    		    #
 	    		    trace_output = ap_trace(
-	    		    	's'+k,
+	    		    	k,
 	    		    	y0_trace = y0_trace,
 	    		    	yf_trace = yf_trace, 
 	    		    	trace_prominence = trace_prominence,
@@ -278,7 +278,7 @@ if run_pipeline is True:
 	    		    	display = display_optimal)
 	    		    #
 	    		    onedspec, fluxerr, variancespec = ap_extract(
-	    		    	's'+k, 
+	    		    	k, 
 	    		    	trace = my, 
 	    		    	apwidth = round(myfwhm), 
 	    		    	skysep = skysep, 
