@@ -1,6 +1,6 @@
 from spectroscopic_routines import *
 
-run_pipeline = True
+run_pipeline = False
 apply_flux_cal = True
 
 raw_files_prefix = 'a'
@@ -187,7 +187,7 @@ if (construct_bias is True) or (construct_flat is True):
 
 if run_pipeline is True:
 
-	IMAGES = glob.glob(raw_files_prefix+'*.fits')
+	IMAGES = glob.glob(raw_files_prefix+'*16.fits')
 
 	trim_images = []
 	
@@ -391,6 +391,7 @@ if apply_flux_cal is True:
 		if (k.split('_')[0].lower() == 'cd-32-9927') or (k.split('_')[0].lower() == 'cd-32d9927'):
 			standard.append(k)
 			standard_name.append('cd-32-9927')
+			print ('ok1')
 		if k.split('_')[0].lower() == 'ltt7379':
 			standard.append(k)
 			standard_name.append('ltt7379')
