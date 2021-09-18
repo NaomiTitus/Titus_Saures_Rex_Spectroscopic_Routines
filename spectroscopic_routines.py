@@ -2047,6 +2047,10 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         elif (len(data) == 5) and (len(standard_spec) == 5):
             respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
             respfn_optimal, waves_optimal, ratios_optimal, w_optimal, std_spec_optimal, calspec_optimal = response(w_stand, opt_stand)
+        elif (len(data) == 5) and (len(standard_spec) == 3):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal = None
+
 
         f = open(science_spec.split('_reduced.dat')[0]+'_fluxcal.dat','w')
         if respfn_optimal is not None:
@@ -2063,6 +2067,10 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         #
         #Plot response function
         #
+        optimal = respfn_optimal
+        
+        plt.clf()
+        plt.close()
         if respfn_optimal is not None:
             plt.subplot(211)
         plt.title('Calibrating the standard:' + standard_reduced_spec.split('_reduced.dat')[0])
@@ -2087,6 +2095,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         if (display is True):
             plt.show()
         plt.clf()
+        plt.close()
 
         #
         #Plot calibrated standard
@@ -2116,6 +2125,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         if display is True:
             plt.show()
         plt.clf()
+        plt.close()
         #
         # Plot flux calibrated spectra
         #
@@ -2130,6 +2140,8 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
         if display is True:
             plt.show()
+        plt.clf()
+        plt.close()
  
     except NameError:
         print ('Standard not found, add standard eso url to script')
