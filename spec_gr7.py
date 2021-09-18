@@ -109,7 +109,7 @@ display_optimal = False
 apwidth = None
 skysep = 5
 skywidth = 6
-skydeg = 1
+skydeg = 0
 coaddN = 1
 display_apextract = False
 
