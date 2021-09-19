@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
-run_pipeline = True
-apply_flux_cal = False
+run_pipeline = False
+apply_flux_cal = True
 
 raw_files_prefix = 'a'
 
@@ -78,7 +78,7 @@ border_mode = 'mirror'
 ###### Trace Parameters ########
 ################################
 
-y0_trace = 28
+y0_trace = 27.8
 yf_trace = 33.8
 manual_trace = False
 manual_poly_order = 3
@@ -87,7 +87,7 @@ manual_y = [22.1,23.87,26.13,27.42]
 trace_prominence = 300
 tolerance = 3
 trace_width = None
-poly_order = 3
+poly_order = 2
 fmask = (1,) 
 nsteps = 25
 recenter = True 
@@ -109,7 +109,7 @@ display_optimal = False
 apwidth = None
 skysep = 5
 skywidth = 6
-skydeg = 1
+skydeg = 0
 coaddN = 1
 display_apextract = False
 
@@ -375,7 +375,6 @@ if apply_flux_cal is True:
 	standard = []
 	standard_name = []
 	for k in reduced_data_files:
-		print (k,k.split('_')[0])
 		if k.split('_')[0].lower() == 'ltt3218':
 			standard.append(k)
 			standard_name.append('ltt3218')
@@ -397,7 +396,8 @@ if apply_flux_cal is True:
 	
 	if len(standard) != None:
 		for k in reduced_data_files:
-		    flux_callibration(
+			print (k)
+			flux_callibration(
 		    	standard_reduced_spec = standard[0], 
 		    	standard_name = standard_name[0], 
 		    	science_spec = k,

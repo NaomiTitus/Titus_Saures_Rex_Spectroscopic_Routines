@@ -906,16 +906,18 @@ def ap_trace(image, object_keyword,
 
     # Manual trace
 
-    if manual_trace is True:
-        def man_fit(manual_x,manual_y,manual_poly_order):
+    def man_fit(manual_x,manual_y,manual_poly_order):
             ap_spl_man = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
             p_man = np.poly1d(ap_spl_man[0])
             my_man = p_man(xbins) #+ trace_ymin
             show_image(img)
             plt.plot(xbins,my_man,'--r')
             plt.plot(manual_x,manual_y,'or')
+            plt.legend(loc=1)
             plt.show()
             return ap_spl_man, p_man, my_man
+
+    if manual_trace is True:
         ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
         adjust = input('Would you like to adjust trace positions? (y/n) ')
         while adjust == 'y':
@@ -951,7 +953,6 @@ def ap_trace(image, object_keyword,
         # input('Enter')
 
         trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-        # tolerance = 2
     
         if i == 0:
             # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
@@ -996,19 +997,66 @@ def ap_trace(image, object_keyword,
 
     # input()
 
+
     Mxbins = (xbins[:-1]+xbins[1:]) / 2.
     Mybins = ybins[:-1]
 
+
     if trace_width == None:
-        myfwhm = max(fwhm)*1.2
+        myfwhm = max(fwhm)*1.2*.5
         # print (fwhm, myfwhm)
         # input()
     else:
         myfwhm = trace_width
 
-    # mxbins[0] = 0
-    # mybins[0] =  5.29467085
-    # print (mxbins,mybins)
+    if myfwhm < 1: # When something goes wrong with the tracing and your FWHM is wrong
+        plt.clf()
+        plt.close()
+        # Show trace 
+        plt.title('{} trace unsuccessful, note a few x & y points for trace'.format(target_name))
+        show_image(img)
+        plt.show()
+        manual_x = '10 740 1391 1913'.split(' ') #input('Add list of x posiitons (e.g 10 50 100): ').split(' ')
+        manual_y = '27.9 29.9 31.9 33'.split(' ') #input('Add list of y posiitons (e.g 10 11 15): ').split(' ')
+        manual_poly_order = 3 #int(input('Enter polynomial order for fitting: '))
+        manual_x = [float(i) for i in manual_x]
+        manual_y = [float(i) for i in manual_y]
+        
+        ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+        adjust = input('Would you like to adjust trace positions? (y/n) ')
+        while adjust == 'y':
+            manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
+            manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
+            ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+            adjust = input('Would you like to adjust trace positions? (y/n) ')
+        if adjust == 'n':
+            man_peaks = np.zeros(len(manual_x))
+            for index in range(len(manual_x)):
+                # print (index, int(manual_x[index]), int(manual_y[index]))
+                # print (img[19:29,740])
+                # input()
+                peaks, _ = find_peaks(img[int(manual_y[index])-10:int(manual_y[index])+10,int(manual_x[index])], prominence=trace_prominence*.1)
+                # print ('ok1')
+                # input()
+                xx = np.linspace(manual_y[index]-10,manual_y[index]+10,20)
+                yy = img[int(manual_y[index])-10:int(manual_y[index])+10,int(manual_x[index])]
+                print (np.linspace(manual_y[index]-10,manual_y[index]+10,20)[peaks])
+                if len(peaks) != 0:
+                    man_peaks[index] =  xx[peaks][np.argmin(np.abs(manual_y[index] - xx[peaks]))]
+                if len(peaks) == 0:
+                    man_peaks[index] = np.na
+                # print ('ok2')
+                # input()
+                plt.plot(xx,yy)
+                plt.plot(xx[peaks], yy[peaks], "x",label='Column number: {}'.format(manual_x[index]))
+                plt.legend(loc=1)
+                plt.show()
+            print (man_peaks)
+            input()
+            show_image(img)
+            plt.plot(manual_x,man_peaks,'--','r')
+            plt.show()
+            input()
 
     
     def distance(x,y,tolerance):
@@ -1024,7 +1072,6 @@ def ap_trace(image, object_keyword,
 
     mxbins, mybins = distance(Mxbins,Mybins,tolerance)
 
-
     ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
     print ('residuals = ',ap_spl[4])
 
@@ -1033,8 +1080,6 @@ def ap_trace(image, object_keyword,
     # interpolate the spline to 1 position per column
     mx = np.arange(0, img_window.shape[Saxis])
     my = p(mx) #+ trace_ymin
-
-
 
 
     if display is True:
@@ -1094,6 +1139,7 @@ def ap_trace(image, object_keyword,
         plt.close()
 
     plt.close()
+
     # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
     # print (my, myfwhm)
     if manual_trace is True:
@@ -1936,7 +1982,15 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # https://www.eso.org/sci/observing/tools/standards/spectra/
     file_name = science_spec.split('.')[0].split('_reduced')[0]
     file_name_std = standard_reduced_spec.split('.')[0].split('_reduced')[0]
-    w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
+
+    standard_spec = np.loadtxt(standard_reduced_spec,skiprows=1,unpack=True)
+    
+    if len(standard_spec) == 3:
+        w_stand, sum_stand = standard_spec[0], standard_spec[1]
+
+    if len(standard_spec) == 5:
+        w_stand, sum_stand, opt_stand = standard_spec[0], standard_spec[1], standard_spec[3]
+    # w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
 
     data =  np.loadtxt(science_spec,skiprows=1,unpack=True)
     if len(data) == 3:
@@ -1956,7 +2010,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/okestan/ffeige67.dat', dtype=dtype)
     # calspec = np.genfromtxt('fltt3218.dat', dtype=dtype)
 
-    try:
+    def response(w,f):
         if standard_name == 'ltt3218':
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt3218.dat',dtype=dtype)
         if standard_name == 'eg21':
@@ -1984,79 +2038,111 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         # fit a spline to the ratios to determine the response function
         t = waves[w][1:-2:25]
         respfn = LSQUnivariateSpline(waves[w], ratios[w], t)
+        return respfn, waves, ratios, w, std_spec, calspec
+
+    try:
+        if len(data) == 3 :
+                respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+                respfn_optimal = None
+        elif (len(data) == 5) and (len(standard_spec) == 5):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal, waves_optimal, ratios_optimal, w_optimal, std_spec_optimal, calspec_optimal = response(w_stand, opt_stand)
+        elif (len(data) == 5) and (len(standard_spec) == 3):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal = None
+
 
         f = open(science_spec.split('_reduced.dat')[0]+'_fluxcal.dat','w')
-        if optimal is not None:
+        if respfn_optimal is not None:
             f.write('wavelength spec_sum spec_optimal\n')
             for ii in range(7,len(waves_cor)-3):
-                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn(waves_cor[ii])))
+                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn_optimal(waves_cor[ii])))
             f.close()
         else:
             f.write('wavelength spec_sum\n')
             for ii in range(7,len(waves_cor)-3):
                 f.write('%g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii])))
             f.close()
-        # compare the tabulated and extracted flux densities (applying the response function)
-        if display is True:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
+        
+        #
+        #Plot response function
+        #
+        optimal = respfn_optimal
+        
+        plt.clf()
+        plt.close()
+        if respfn_optimal is not None:
+            plt.subplot(211)
+        plt.title('Calibrating the standard:' + standard_reduced_spec.split('_reduced.dat')[0])
+        plt.plot(waves[w], ratios[w], 'ro',ms=1.,label='Summed spectrum')
+        xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
+        plt.plot(xwav, respfn(xwav))
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
+            plt.plot(waves_optimal[w_optimal], ratios_optimal[w_optimal], 'ro',ms=1.,label='Optimal spectrum')
+            xwav = np.linspace(waves_optimal[w_optimal][1], waves_optimal[w_optimal][-1], 1000)
+            plt.plot(xwav, respfn_optimal(xwav))
             plt.xlabel('Wavelength ($\AA$)')
             plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
+            plt.legend(loc=1)
+        
+        plt.savefig(file_name_std+'_fluxcal_response.png')
+        if (display is True):
             plt.show()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.legend(loc='best')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.show()
-        if display is False:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
-            plt.close()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.close()
-        if display is True:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.show()
-        if display is False:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.close()
+        plt.clf()
+        plt.close()
+
         #
+        #Plot calibrated standard
+        #
+        if respfn_optimal is not None:
+            plt.subplot(211)
+
+        plt.title('Calibrated standard: ' + standard_reduced_spec)
+        plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+        plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.yscale('log')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec)
+            plt.plot(calspec_optimal['wav'][7:-3], calspec_optimal['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+            plt.plot(waves_optimal[7:-3], std_spec_optimal[7:-3] / respfn_optimal(waves_optimal[7:-3]), label='Optimal extracted spectrum')
+            plt.xlabel('Wavelength ($\AA$)')
+            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+            plt.yscale('log')
+            plt.legend(loc=1)
+
+        plt.savefig(file_name_std+'_fluxcal_standard.png')
+        if display is True:
+            plt.show()
+        plt.clf()
+        plt.close()
+        #
+        # Plot flux calibrated spectra
+        #
+        plt.figure(figsize=(10, 5))
+        plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
+        if optimal is not None:
+            plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn_optimal(waves_cor[7:-3]),label='Optimal trace',color='orange')
+        plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
+        plt.legend(loc='best')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
+        if display is True:
+            plt.show()
+        plt.clf()
+        plt.close()
+ 
     except NameError:
         print ('Standard not found, add standard eso url to script')
         print ('File: '+science_spec)
