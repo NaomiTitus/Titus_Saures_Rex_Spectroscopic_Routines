@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = False
+apply_flux_cal = True
 
 raw_files_prefix = 'a'
 
@@ -145,7 +145,7 @@ display_flux_cal = False
 ##########################################
 
 if (construct_bias is True) or (construct_flat is True): 
-	IMAGES = glob.glob(raw_files_prefix+'*.fits')
+	# IMAGES = glob.glob(raw_files_prefix+'*.fits')
 	bias_files = []
 	flat_files = []
 	for k in IMAGES:
