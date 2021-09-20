@@ -2023,6 +2023,8 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd32d9927.dat',dtype=dtype)
         if standard_name == 'ltt7379':  
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7379.dat',dtype=dtype)
+        if standard_name == 'ltt7987':  
+            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7987.dat',dtype=dtype)
         # fit a spline to the tabulated spectrum
         t = np.arange(calspec['wav'][1], calspec['wav'][-2], np.int(np.median(calspec['dlam'])))
         # print (calspec['dlam'])

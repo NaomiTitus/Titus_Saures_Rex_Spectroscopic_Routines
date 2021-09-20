@@ -401,6 +401,9 @@ if apply_flux_cal is True:
 		if k.split('_')[0].lower() == 'ltt7379':
 			standard.append(k)
 			standard_name.append('ltt7379')
+		if k.split('_')[0].lower() == 'ltt7987':
+			standard.append(k)
+			standard_name.append('ltt7987')
 	
 	if len(standard) != None:
 		for k in reduced_data_files:
