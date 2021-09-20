@@ -136,7 +136,7 @@ def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw
         files = glob.glob(files_prefix+raw_prefix+'*.fits')
         for i in files:    
             image, header = fits.getdata(i, header=True)
-            if (header[identifying_keyword] == flat_keyword) and (header[exp_time_keyword] == str(exp_time)):
+            if (header[identifying_keyword] == flat_keyword) and (header[exp_time_keyword] == str(float(exp_time))):
                 print (i)
                 b_image = image - bias
                 # check for bad regions (not illuminated) in the spatial direction
@@ -1144,10 +1144,10 @@ def ap_trace(image, object_keyword,
             #
             # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
             # print (my, myfwhm)
-            if manual_trace is True:
-                return my, myfwhm, ap_spl, my_man, ap_spl_man
-            else:    
-                return my, myfwhm, ap_spl
+            # if manual_trace is True:
+            #     return my, myfwhm, ap_spl, my_man, ap_spl_man
+            # else:    
+            return my, myfwhm, ap_spl
 
 # my, myfwhm, trace_c = ap_trace(IMAGE, fmask=(1,), nsteps=5, interac=False,
 #              recenter=True, prevtrace=(0,), bigbox=15,
