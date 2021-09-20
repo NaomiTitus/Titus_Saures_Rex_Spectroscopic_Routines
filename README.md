@@ -26,6 +26,7 @@ The pipeline uses native Python routines for the following tasks:
 
   *	Numpy
   *	os
+  *	Pandas
   *	Astropy
   *	Specutils (See [installation](https://specutils.readthedocs.io/en/latest/))
   *	Matplotlib
