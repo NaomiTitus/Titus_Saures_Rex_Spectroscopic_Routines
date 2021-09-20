@@ -22,7 +22,7 @@ flip_wave_axis = True
 #############################
 #############################
 
-IMAGES =  raw_files_prefix+'*.fits' # or you can a single image
+IMAGES =  raw_files_prefix+'*43.fits' # or you can a single image
 ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
@@ -194,7 +194,8 @@ if (construct_bias is True) or (construct_flat is True):
 
 if run_pipeline is True:
 
-	IMAGES = glob.glob(IMAGES)
+	if type(IMAGES) is str:
+		IMAGES = glob.glob(IMAGES)
 
 	trim_images = []
 	
@@ -241,9 +242,9 @@ if run_pipeline is True:
 	    		print(k,exposure_type)
 	    		number = int(k.split('.')[0].split(raw_files_prefix)[1])
 	    		if type(ARC) is int:
-	    			arc = 'ta'+str(number+ARC)+'.fits'
+	    			arc = 't'+raw_files_prefix+str(number+ARC)+'.fits'
 	    		if type(ARC) is str:
-	    			arc = ARC
+	    			arc = 't'+ARC
 	    		spec_file = k.split('.fits')[0]
 	    		k = 'cfbt'+k
 	    		# print (k)
