@@ -918,15 +918,6 @@ def ap_trace(image, object_keyword,
         plt.show()
         return ap_spl_man, p_man, my_man
 
-    if manual_trace is True:
-        ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
-        adjust = input('Would you like to adjust trace positions? (y/n) ')
-        while adjust == 'y':
-            manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
-            manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
-            ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
-            adjust = input('Would you like to adjust trace positions? (y/n) ')
-
     def auto_trace_fails():
         plt.clf()
         plt.close()
@@ -936,8 +927,8 @@ def ap_trace(image, object_keyword,
         plt.show()
         manual_x = input('Add list of x posiitons (e.g 10 50 100): ').split(' ')
         manual_y = input('Add list of y posiitons (e.g 10 11 15): ').split(' ')
-        trace_width = 6 #float(input('Add trace width in pixels: '))
-        manual_poly_order = 3 #int(input('Enter polynomial order for fitting: '))
+        trace_width = float(input('Add trace width in pixels: '))
+        manual_poly_order = int(input('Enter polynomial order for fitting: '))
         manual_x = [float(i) for i in manual_x]
         manual_y = [float(i) for i in manual_y]
         
@@ -976,171 +967,187 @@ def ap_trace(image, object_keyword,
 
     slope, intercept, r_value, p_value, std_err = linregress([xbins[0],xbins[-1]],[y0_trace,yf_trace])
     yvals_line = straight(xbins,slope,intercept)
+
     
     plt.figure(figsize=(10, 7))
-    try:
-        for i in range(0,len(xbins)-1):
-            #-- fit gaussian w/i each window
-            if Saxis == 1:
-                zi = np.sum(img_window[ydata2, xbins[i]:xbins[i+1]], axis=Saxis)
-            else:
-                zi = img_window[xbins[i]:xbins[i+1], ydata2].sum(axis=Saxis)
-            #
-            # plt.clf()
-            peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=trace_prominence,threshold=tolerance)
-            # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)])
-            # plt.plot(yi[np.isfinite(ztot)][peaks], zi[np.isfinite(ztot)][peaks], "x")
-            # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)],'r')
-            # plt.title(xbins[i])
-            # plt.show()
-            #
-            # input('Enter')
-            #
-            trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-            #
-            if i == 0:
-                # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
-                pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_start, 2.]
-                popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess, 
-                    bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
-                if abs(yvals_line[i]-popt[2]) > tolerance:
-                    y1_trace = yvals_line[i]
-                else:
-                    y1_trace = popt[2]
-                # print (trace_start,y1_trace,popt[2])
-                # input()
-            if i >= 1:
-                trace_next = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-                pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_next, 2.]
-                popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess,
-                    bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
-                    #  bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
-                    # ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
-                # print (trace_next,popt[2])
-                if abs(yvals_line[i]-popt[2]) > tolerance:
-                    y1_trace = yvals_line[i]
-                    # y0_trace = yvals_line[i]
-                else:
-                    y1_trace = popt[2]
-                    # y0_trace = popt[2]
-            #
-            plt.subplot(1, 2, 1)
-            plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)]) # ,label=str(xbins[i])+' - '+str(np.round(popt[2],2))
-            if i == int(nsteps*.5):
-                plt.axvline(popt[2]-tolerance,color='k',ls='--')
-                plt.axvline(popt[2]+tolerance,color='k',ls='--')
-            plt.xlabel('Row Number')
-            plt.ylabel('Intensity')
-            #
-            # plt.plot(yi[np.isfinite(ztot)],_gaus(yi[np.isfinite(ztot)],*popt),'ro:',label='fit')
-            #
-            ybins[i] = y1_trace #popt[2]
-            fwhm[i] = popt[3]*gaussian_sigma_to_fwhm 
-        #
-        Mxbins = (xbins[:-1]+xbins[1:]) / 2.
-        Mybins = ybins[:-1]
-        #
-        #
-        if trace_width == None:
-            myfwhm = max(fwhm)*1.2*.5
-            # print (fwhm, myfwhm)
-            # input()
-        else:
-            myfwhm = trace_width
 
-    except: # When something goes wrong with the tracing and your FWHM is wrong
-        ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
-
-    if myfwhm < 1:
-        ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
+    if manual_trace is True:
+        ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+        adjust = input('Would you like to adjust trace positions? (y/n) ')
+        while adjust == 'y':
+            manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
+            manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
+            ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+            adjust = input('Would you like to adjust trace positions? (y/n) ')
 
     else:
-        def distance(x,y,tolerance):
-            mxbins = []
-            mybins = []
-            for i in range(len(x)-1):
-                d = y[i+1] - y[i] 
-                # print (d)
-                if d < .5*tolerance:
-                    mxbins.append(x[i])
-                    mybins.append(y[i])
-            return mxbins, mybins
-        #
-        mxbins, mybins = distance(Mxbins,Mybins,tolerance)
-        #
-        ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
-        print ('residuals = ',ap_spl[4])
-        #
-        p = np.poly1d(ap_spl[0])
-        #
-        # interpolate the spline to 1 position per column
-        mx = np.arange(0, img_window.shape[Saxis])
-        my = p(mx) #+ trace_ymin
-        #
-        #
-    if display is True:
-        if mxbins is not None:
-            plt.title('Gaussian fitted to trace of ' + target_name)
-            # plt.legend(loc='best')
-            plt.subplot(1, 2, 2)
-            plt.title('Fitted centers of trace')
-            plt.plot(mxbins,mybins,'k.')
-            plt.plot(mxbins,p(mxbins),'r:',label='fit')
-            res = '%.1e' % ap_spl[4]
-            plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-            plt.xlabel('Column Number')
-            plt.ylabel('Row Number')
-            plt.legend(loc='best')
-            plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
-            plt.show()
-        #
-        show_image(img)
-        plt.autoscale(False)
-        plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-        plt.plot(mx,my - myfwhm,'k',label='Trace width')
-        plt.plot(mx,my + myfwhm,'k')
-        # if manual_trace is True:
-        #     plt.plot(xbins,my_man,'r',label='Manual trace')
-        #     plt.plot(manual_x,manual_y,'or')
-        plt.legend(loc='best')
-        plt.title('Trace region of ' + target_name)
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
-        plt.show()
-        #
-    if display is False:
-        if mxbins is not None:
-            plt.title('Gaussian fitted to trace of ' + target_name)
-            # plt.legend(loc='best')
-            plt.subplot(1, 2, 2)
-            plt.title('Fitted centers of trace')
-            plt.plot(mxbins,mybins,'k.')
-            plt.plot(mxbins,p(mxbins),'r:',label='fit')
-            res = '%.1e' % ap_spl[4]
-            plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-            plt.xlabel('Column Number')
-            plt.ylabel('Row Number')
-            plt.legend(loc='best')
-            plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+        try:
+            for i in range(0,len(xbins)-1):
+                #-- fit gaussian w/i each window
+                if Saxis == 1:
+                    zi = np.sum(img_window[ydata2, xbins[i]:xbins[i+1]], axis=Saxis)
+                else:
+                    zi = img_window[xbins[i]:xbins[i+1], ydata2].sum(axis=Saxis)
+                #
+                # plt.clf()
+                peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=trace_prominence,threshold=tolerance)
+                # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)])
+                # plt.plot(yi[np.isfinite(ztot)][peaks], zi[np.isfinite(ztot)][peaks], "x")
+                # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)],'r')
+                # plt.title(xbins[i])
+                # plt.show()
+                #
+                # input('Enter')
+                #
+                trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
+                #
+                if i == 0:
+                    # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
+                    pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_start, 2.]
+                    popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess, 
+                        bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
+                    if abs(yvals_line[i]-popt[2]) > tolerance:
+                        y1_trace = yvals_line[i]
+                    else:
+                        y1_trace = popt[2]
+                    # print (trace_start,y1_trace,popt[2])
+                    # input()
+                if i >= 1:
+                    trace_next = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
+                    pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_next, 2.]
+                    popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess,
+                        bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
+                        #  bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
+                        # ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
+                    # print (trace_next,popt[2])
+                    if abs(yvals_line[i]-popt[2]) > tolerance:
+                        y1_trace = yvals_line[i]
+                        # y0_trace = yvals_line[i]
+                    else:
+                        y1_trace = popt[2]
+                        # y0_trace = popt[2]
+                #
+                plt.subplot(1, 2, 1)
+                plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)]) # ,label=str(xbins[i])+' - '+str(np.round(popt[2],2))
+                if i == int(nsteps*.5):
+                    plt.axvline(popt[2]-tolerance,color='k',ls='--')
+                    plt.axvline(popt[2]+tolerance,color='k',ls='--')
+                plt.xlabel('Row Number')
+                plt.ylabel('Intensity')
+                #
+                # plt.plot(yi[np.isfinite(ztot)],_gaus(yi[np.isfinite(ztot)],*popt),'ro:',label='fit')
+                #
+                ybins[i] = y1_trace #popt[2]
+                fwhm[i] = popt[3]*gaussian_sigma_to_fwhm 
+            #
+            Mxbins = (xbins[:-1]+xbins[1:]) / 2.
+            Mybins = ybins[:-1]
+            #
+            #
+            if trace_width == None:
+                myfwhm = max(fwhm)*1.2*.5
+                # print (fwhm, myfwhm)
+                # input()
+            else:
+                myfwhm = trace_width
+                #
+        except: # When something goes wrong with the tracing and your FWHM is wrong
+            ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
+            plt.close()
+
+                #
+        if myfwhm < 1:
+            ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
             plt.close()
         #
-        show_image(img)
-        plt.autoscale(False)
-        plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-        plt.plot(mx,my - myfwhm,'k',label='Trace width')
-        plt.plot(mx,my + myfwhm,'k')
-        plt.legend(loc='best')
-        plt.title('Trace region of ' + target_name)
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
-        plt.close()
-        #
-    plt.close()
-
-    # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
-    # print (my, myfwhm)
-    if manual_trace is True:
-        return my, myfwhm, ap_spl, my_man, ap_spl_man
-    else:    
-        return my, myfwhm, ap_spl
+        else:
+            def distance(x,y,tolerance):
+                mxbins = []
+                mybins = []
+                for i in range(len(x)-1):
+                    d = y[i+1] - y[i] 
+                    # print (d)
+                    if d < .5*tolerance:
+                        mxbins.append(x[i])
+                        mybins.append(y[i])
+                return mxbins, mybins
+            #
+            mxbins, mybins = distance(Mxbins,Mybins,tolerance)
+            #
+            ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
+            print ('residuals = ',ap_spl[4])
+            #
+            p = np.poly1d(ap_spl[0])
+            #
+            # interpolate the spline to 1 position per column
+            mx = np.arange(0, img_window.shape[Saxis])
+            my = p(mx) #+ trace_ymin
+            #
+            #
+        if ap_spl is not None:
+            if display is True:
+                if mxbins is not None:
+                    plt.title('Gaussian fitted to trace of ' + target_name)
+                    # plt.legend(loc='best')
+                    plt.subplot(1, 2, 2)
+                    plt.title('Fitted centers of trace')
+                    plt.plot(mxbins,mybins,'k.')
+                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
+                    res = '%.1e' % ap_spl[4]
+                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
+                    plt.xlabel('Column Number')
+                    plt.ylabel('Row Number')
+                    plt.legend(loc='best')
+                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                    plt.show()
+                #
+                show_image(img)
+                plt.autoscale(False)
+                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+                plt.plot(mx,my - myfwhm,'k',label='Trace width')
+                plt.plot(mx,my + myfwhm,'k')
+                # if manual_trace is True:
+                #     plt.plot(xbins,my_man,'r',label='Manual trace')
+                #     plt.plot(manual_x,manual_y,'or')
+                plt.legend(loc='best')
+                plt.title('Trace region of ' + target_name)
+                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+                plt.show()
+                #
+            if display is False:
+                if mxbins is not None:
+                    plt.title('Gaussian fitted to trace of ' + target_name)
+                    # plt.legend(loc='best')
+                    plt.subplot(1, 2, 2)
+                    plt.title('Fitted centers of trace')
+                    plt.plot(mxbins,mybins,'k.')
+                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
+                    res = '%.1e' % ap_spl[4]
+                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
+                    plt.xlabel('Column Number')
+                    plt.ylabel('Row Number')
+                    plt.legend(loc='best')
+                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                    plt.close()
+                #
+                show_image(img)
+                plt.autoscale(False)
+                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+                plt.plot(mx,my - myfwhm,'k',label='Trace width')
+                plt.plot(mx,my + myfwhm,'k')
+                plt.legend(loc='best')
+                plt.title('Trace region of ' + target_name)
+                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+                plt.close()
+                #
+            plt.close()
+            #
+            # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
+            # print (my, myfwhm)
+            if manual_trace is True:
+                return my, myfwhm, ap_spl, my_man, ap_spl_man
+            else:    
+                return my, myfwhm, ap_spl
 
 # my, myfwhm, trace_c = ap_trace(IMAGE, fmask=(1,), nsteps=5, interac=False,
 #              recenter=True, prevtrace=(0,), bigbox=15,
