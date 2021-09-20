@@ -22,8 +22,8 @@ flip_wave_axis = True
 #############################
 #############################
 
-IMAGES = glob.glob(raw_files_prefix+'*16.fits')
-ARC = 1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
+IMAGES =  raw_files_prefix+'*.fits' # or you can a single image
+ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
 #############################
@@ -193,6 +193,8 @@ if (construct_bias is True) or (construct_flat is True):
 
 
 if run_pipeline is True:
+
+	IMAGES = glob.glob(IMAGES)
 
 	trim_images = []
 	
