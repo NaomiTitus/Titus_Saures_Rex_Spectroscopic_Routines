@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = True
+apply_flux_cal = False
 
 raw_files_prefix = 'a'
 
@@ -17,6 +17,13 @@ readnoise_keyword = 'NOISEADU'
 
 spatial_axis = 1
 flip_wave_axis = True
+
+
+#############################
+#############################
+
+IMAGES = glob.glob(raw_files_prefix+'*16.fits')
+ARC = 1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
 #############################
@@ -187,8 +194,6 @@ if (construct_bias is True) or (construct_flat is True):
 
 if run_pipeline is True:
 
-	IMAGES = glob.glob(raw_files_prefix+'*.fits')
-
 	trim_images = []
 	
 	for k in IMAGES:
@@ -233,7 +238,10 @@ if run_pipeline is True:
 	    	if exposure_type == science_keyword:
 	    		print(k,exposure_type)
 	    		number = int(k.split('.')[0].split(raw_files_prefix)[1])
-	    		arc = 'ta'+str(number-1)+'.fits'
+	    		if type(ARC) is int:
+	    			arc = 'ta'+str(number+ARC)+'.fits'
+	    		if type(ARC) is str:
+	    			arc = ARC
 	    		spec_file = k.split('.fits')[0]
 	    		k = 'cfbt'+k
 	    		# print (k)
