@@ -22,7 +22,7 @@ flip_wave_axis = True
 #############################
 #############################
 
-IMAGES =  raw_files_prefix+'*43.fits' # or you can a single image
+IMAGES =  raw_files_prefix+'*.fits' # or you can a single image
 ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
