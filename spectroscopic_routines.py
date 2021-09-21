@@ -906,17 +906,22 @@ def ap_trace(image, object_keyword,
 
     # Manual trace
 
-    def man_fit(manual_x,manual_y,manual_poly_order):
-        ap_spl_man = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
-        p_man = np.poly1d(ap_spl_man[0])
-        my_man = p_man(xbins) #+ trace_ymin
+    def man_fit(manual_x,manual_y,manual_poly_order,trace_width=None,mx=None,my=None):
+        ap_spl = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
+        p = np.poly1d(ap_spl[0])
+        mx = np.arange(0, img_window.shape[Saxis])
+        my = p(mx) #+ trace_ymin
         show_image(img)
         plt.title('Fitted trace region of ' + target_name)
-        plt.plot(xbins,my_man,'--r')
+        plt.plot(mx,my,'--r')
         plt.plot(manual_x,manual_y,'or')
+        if (trace_width is not None) and (mx is not None) and (my is not None):
+            plt.plot(mx,my - trace_width*.5,'k',label='Trace width')
+            plt.plot(mx,my + trace_width*.5,'k')
         plt.legend(loc=1)
+        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
         plt.show()
-        return ap_spl_man, p_man, my_man
+        return ap_spl, p, my
 
     def auto_trace_fails():
         plt.clf()
@@ -958,7 +963,7 @@ def ap_trace(image, object_keyword,
             myfwhm = trace_width*.5
             mxbins = None
 
-            return ap_spl, myfwhm, mxbins, mx, my
+            return my, myfwhm, ap_spl
         
 
     def straight(x,m,c):
@@ -969,18 +974,35 @@ def ap_trace(image, object_keyword,
     yvals_line = straight(xbins,slope,intercept)
 
     
-    plt.figure(figsize=(10, 7))
+    # plt.figure(figsize=(10, 7))
 
     if manual_trace is True:
-        ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
+        ap_spl, p, my = man_fit(manual_x,manual_y,manual_poly_order)
         adjust = input('Would you like to adjust trace positions? (y/n) ')
         while adjust == 'y':
             manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
             manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
-            ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
-            adjust = input('Would you like to adjust trace positions? (y/n) ')
+            ap_spl, p, my = man_fit(manual_x,manual_y,manual_poly_order)
+            adjust= input('Would you like to adjust trace positions? (y/n) ')
+        trace_width = float(input('Enter trace width in pixels: '))
+        poly_order = float(input('Enter polynomial order: '))
+        def trace_manual_adjust(p,poly_order,trace_width,adjust=None):
+            # interpolate the spline to 1 position per column
+            mx = np.arange(0, img_window.shape[Saxis])
+            my = p(mx) #+ trace_ymin
 
-    else:
+            ap_spl, p, my = man_fit(manual_x,manual_y,poly_order,trace_width=trace_width,mx=mx,my=my)
+            adjust = str(input('Would you like to adjust the trace width or polynomial order ? (y/n) '))
+            return adjust, ap_spl, p, my, trace_width
+        adjust, ap_spl, p, my, trace_width = trace_manual_adjust(p,poly_order,trace_width)
+        while adjust == 'y':
+            trace_width = float(input('Enter trace width in pixels: '))
+            poly_order = float(input('Enter polynomial order: '))
+            adjust, ap_spl, p, my, trace_width = trace_manual_adjust(p,poly_order,trace_width)
+        myfwhm = trace_width*.5
+        # return my, myfwhm, ap_spl
+
+    if manual_trace is not True:
         try:
             for i in range(0,len(xbins)-1):
                 #-- fit gaussian w/i each window
@@ -1052,12 +1074,12 @@ def ap_trace(image, object_keyword,
                 myfwhm = trace_width
                 #
         except: # When something goes wrong with the tracing and your FWHM is wrong
-            ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
+            my, myfwhm, ap_spl = auto_trace_fails()
             plt.close()
 
                 #
         if myfwhm < 1:
-            ap_spl, myfwhm, mxbins, mx, my = auto_trace_fails()
+            my, myfwhm, ap_spl = auto_trace_fails()
             plt.close()
         #
         else:
@@ -1142,12 +1164,7 @@ def ap_trace(image, object_keyword,
                 #
             plt.close()
             #
-            # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
-            # print (my, myfwhm)
-            # if manual_trace is True:
-            #     return my, myfwhm, ap_spl, my_man, ap_spl_man
-            # else:    
-            return my, myfwhm, ap_spl
+    return my, myfwhm, ap_spl
 
 # my, myfwhm, trace_c = ap_trace(IMAGE, fmask=(1,), nsteps=5, interac=False,
 #              recenter=True, prevtrace=(0,), bigbox=15,
