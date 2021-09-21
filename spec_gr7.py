@@ -89,8 +89,8 @@ y0_trace = 27.8
 yf_trace = 33.8
 manual_trace = False
 manual_poly_order = 3
-manual_x = [0,500,1175,1976]
-manual_y = [22.1,23.87,26.13,27.42]
+manual_x = [3,526,1383,1972]
+manual_y = [29.75,32,35,36]
 trace_prominence = 300
 tolerance = 3
 trace_width = None
@@ -145,7 +145,7 @@ display_flux_cal = False
 ##########################################
 
 if (construct_bias is True) or (construct_flat is True): 
-	IMAGES = glob.glob(raw_files_prefix+'*.fits')
+	# IMAGES = glob.glob(raw_files_prefix+'*.fits')
 	bias_files = []
 	flat_files = []
 	for k in IMAGES:
@@ -194,7 +194,8 @@ if (construct_bias is True) or (construct_flat is True):
 
 if run_pipeline is True:
 
-	IMAGES = glob.glob(IMAGES)
+	if type(IMAGES) is str:
+		IMAGES = glob.glob(IMAGES)
 
 	trim_images = []
 	
@@ -241,142 +242,91 @@ if run_pipeline is True:
 	    		print(k,exposure_type)
 	    		number = int(k.split('.')[0].split(raw_files_prefix)[1])
 	    		if type(ARC) is int:
-	    			arc = 'ta'+str(number+ARC)+'.fits'
+	    			arc = 't'+raw_files_prefix+str(number+ARC)+'.fits'
 	    		if type(ARC) is str:
-	    			arc = ARC
+	    			arc = 't'+ARC
 	    		spec_file = k.split('.fits')[0]
 	    		k = 'cfbt'+k
 	    		# print (k)
 	    		# input()
 	    		try:
 	    		    image_raw, sky_subtracted, sky, xs, ys, nx, ny, yvals = twodsky(k,object_keyword=object_keyword)
-	    		    #
-	    		    trace_output = ap_trace(
-	    		    	k,
-	    		    	y0_trace = y0_trace,
-	    		    	yf_trace = yf_trace, 
-	    		    	trace_prominence = trace_prominence,
-	    		    	manual_trace = manual_trace,
-	    		    	manual_poly_order = manual_poly_order,
-	    		    	manual_x = manual_x,
-	    		    	manual_y = manual_y,
-	    		    	tolerance = tolerance,
-	    		    	trace_width = trace_width,
-	    		    	poly_order = poly_order, 
-	    		        object_keyword = object_keyword, 
-	    		        fmask = fmask, 
-	    		        nsteps = nsteps,
-	    		        recenter = recenter, 
-	    		        prevtrace = prevtrace, 
-	    		        bigbox = bigbox, 
-	    		        Saxis = Saxis, 
-	    		        display = display_trace)
-	    		    if manual_trace is True:
-	    		    	my, myfwhm, trace_c, my_man, trace_c_man = trace_output
-	    		    else:
-	    		    	my, myfwhm, trace_c = trace_output
-	    			#	   
-	    		    optimal_spec = optimal(
-	    		    	image_raw, 
-	    		    	sky = sky, 
-	    		    	xs = xs, 
-	    		    	ys = ys, 
-	    		    	nx = nx, 
-	    		    	ny = ny, 
-	    		    	yvals = yvals,
-	    		    	trace_c = trace_c,
-	    		    	display = display_optimal)
-	    		    #
-	    		    onedspec, fluxerr, variancespec = ap_extract(
-	    		    	k, 
-	    		    	trace = my, 
-	    		    	apwidth = round(myfwhm), 
-	    		    	skysep = skysep, 
-	    		    	skywidth = skywidth, 
-	    		    	skydeg = skydeg,
-	    		        coaddN = coaddN,
-	    		        gain_keyword = gain_keyword,
-	    		        readnoise_keyword = readnoise_keyword,
-	    		        object_keyword = object_keyword,
-	    		        display = display_apextract)
-	    		    #
-	    		    interact = wavelength(
-	    		    	onedspec,
-	    		    	onedspec_optimal = optimal_spec,
-	    		    	spec_file_name = spec_file,
-	    		    	arc_file = arc,
-	    		    	reference_spec = reference_spec,
-	    		        line_list = line_list,
-	    		        trace = my,
-	    		        trace_fwhm = myfwhm,
-	    		        wave_min = wave_min, 
-	    		        wave_max = wave_max, 
-	    		        prominence = prominence, 
-	    		        order = order,
-	    		        parameter_file = parameter_file,
-	    		        object_keyword = object_keyword,
-	    		        flip_wave_axis = flip_wave_axis,
-	    		        view_arc = view_arc,
-	    		        display = display_wave)
-	    		    view_arc = interact
+	    		    optimal_spec = True
 	    		    #
 	    		except ValueError:
 	    		    print ('Fit unsuccessful for '+k+' in twodsky, cannot complete optimal extraction')
-	    		    #
-	    		    my, myfwhm, trace_c = ap_trace(
-	    		    	k,
-	    				y0_trace = y0_trace, 
-	    				yf_trace = yf_trace,
-	    				trace_prominence = trace_prominence,
-	    				manual_trace = manual_trace,
-	    				manual_poly_order = manual_poly_order,
-	    		    	manual_x = manual_x,
-	    		    	manual_y = manual_y,
-	    		    	tolerance = tolerance,
-	    		    	trace_width = trace_width,
-	    		    	poly_order = poly_order, 
-	    		        object_keyword = object_keyword, 
-	    		        fmask = fmask, 
-	    		        nsteps = nsteps,
-	    		        recenter = recenter, 
-	    		        prevtrace = prevtrace, 
-	    		        bigbox = bigbox, 
-	    		        Saxis = Saxis, 
-	    		        display = display_trace)
-	    		    #
-	    		    onedspec, fluxerr, variancespec = ap_extract(
-	    		    	k, 
-	    		    	trace = my, 
-	    		    	apwidth = round(myfwhm), 
-	    		    	skysep = skysep, 
-	    		    	skywidth = skywidth, 
-	    		    	skydeg = skydeg,
-	    		        coaddN = coaddN,
-	    		        gain_keyword = gain_keyword,
-	    		        readnoise_keyword = readnoise_keyword,
-	    		        object_keyword = object_keyword,
-	    		        display = display_apextract)
-	    		    #
-	    		    interact = wavelength(
-	    		    	onedspec,
-	    		    	onedspec_optimal = None,
-	    		    	spec_file_name = spec_file,
-	    		    	arc_file = arc,
-	    		    	reference_spec = reference_spec,
-	    		        line_list = line_list,
-	    		        trace = my,
-	    		        trace_fwhm = myfwhm,
-	    		        wave_min = wave_min, 
-	    		        wave_max = wave_max, 
-	    		        prominence = prominence, 
-	    		        order = order,
-	    		        parameter_file = parameter_file,
-	    		        object_keyword = object_keyword,
-	    		        flip_wave_axis = flip_wave_axis,
-	    		        view_arc = view_arc,
-	    		        display = display_wave)
-	    		    view_arc = interact
+	    		    optimal_spec = None
 
+	    		trace_output = ap_trace(
+	    			k,
+	    			y0_trace = y0_trace,
+	    			yf_trace = yf_trace, 
+	    			trace_prominence = trace_prominence,
+	    			manual_trace = manual_trace,
+	    			manual_poly_order = manual_poly_order,
+	    			manual_x = manual_x,
+	    			manual_y = manual_y,
+	    			tolerance = tolerance,
+	    			trace_width = trace_width,
+	    			poly_order = poly_order, 
+	    		    object_keyword = object_keyword, 
+	    		    fmask = fmask, 
+	    		    nsteps = nsteps,
+	    		    recenter = recenter, 
+	    		    prevtrace = prevtrace, 
+	    		    bigbox = bigbox, 
+	    		    Saxis = Saxis, 
+	    		    display = display_trace)
+	    		my, myfwhm, trace_c = trace_output
+	    		if optimal_spec is True:
+	    			try:    
+	    				optimal_spec = optimal(
+	    		    		image_raw, 
+	    		    		sky = sky, 
+	    		    		xs = xs, 
+	    		    		ys = ys, 
+	    		    		nx = nx, 
+	    		    		ny = ny, 
+	    		    		yvals = yvals,
+	    		    		trace_c = trace_c,
+	    		    		display = display_optimal)
+	    			except:
+	    				optimal_spec = None
+
+	    		#
+	    		onedspec, fluxerr, variancespec = ap_extract(
+	    			k, 
+	    			trace = my, 
+	    			apwidth = round(myfwhm), 
+	    			skysep = skysep, 
+	    			skywidth = skywidth, 
+	    			skydeg = skydeg,
+	    		    coaddN = coaddN,
+	    		    gain_keyword = gain_keyword,
+	    		    readnoise_keyword = readnoise_keyword,
+	    		    object_keyword = object_keyword,
+	    		    display = display_apextract)
+	    		#
+	    		interact = wavelength(
+	    			onedspec,
+	    			onedspec_optimal = optimal_spec,
+	    			spec_file_name = spec_file,
+	    			arc_file = arc,
+	    			reference_spec = reference_spec,
+	    		    line_list = line_list,
+	    		    trace = my,
+	    		    trace_fwhm = myfwhm,
+	    		    wave_min = wave_min, 
+	    		    wave_max = wave_max, 
+	    		    prominence = prominence, 
+	    		    order = order,
+	    		    parameter_file = parameter_file,
+	    		    object_keyword = object_keyword,
+	    		    flip_wave_axis = flip_wave_axis,
+	    		    view_arc = view_arc,
+	    		    display = display_wave)
+	    		view_arc = interact
+	    		    #
 
 
 
