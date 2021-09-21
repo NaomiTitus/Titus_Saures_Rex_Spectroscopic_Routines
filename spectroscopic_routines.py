@@ -1066,10 +1066,18 @@ def ap_trace(image, object_keyword,
             Mybins = ybins[:-1]
             #
             #
-            if trace_width == None:
-                myfwhm = max(fwhm)*1.2*.5
-                # print (fwhm, myfwhm)
-                # input()
+            # if trace_width is None:
+            #     myfwhm = max(fwhm)*1.2*.5
+
+            if type(trace_width) is str:
+                fac = len(trace_width.split('-'))
+                if fac == 1:
+                    myfwhm = max(fwhm)*1.2*.5
+                    # print (fwhm, myfwhm)
+                    # input()
+                if fac > 1:
+                    factor = float(trace_width.split('-')[0])
+                    myfwhm = max(fwhm)*1.2*.5*factor
             else:
                 myfwhm = trace_width
                 #

@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = True
+apply_flux_cal = False
 
 raw_files_prefix = 'a'
 
@@ -93,7 +93,7 @@ manual_x = [3,526,1383,1972]
 manual_y = [29.75,32,35,36]
 trace_prominence = 300
 tolerance = 3
-trace_width = None
+trace_width = 'fwhm' # or integer for number of pixels
 poly_order = 2
 fmask = (1,) 
 nsteps = 25
@@ -113,7 +113,7 @@ display_optimal = False
 ##### Apextract Parameters #####
 ################################
 
-apwidth = None
+# apwidth = None
 skysep = 5
 skywidth = 6
 skydeg = 0
