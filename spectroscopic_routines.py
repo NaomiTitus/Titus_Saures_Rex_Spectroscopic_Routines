@@ -136,7 +136,7 @@ def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw
         files = glob.glob(files_prefix+raw_prefix+'*.fits')
         for i in files:    
             image, header = fits.getdata(i, header=True)
-            if (header[identifying_keyword] == flat_keyword) and (header[exp_time_keyword] == str(exp_time)):
+            if (header[identifying_keyword] == flat_keyword) and (header[exp_time_keyword] == str(float(exp_time))):
                 print (i)
                 b_image = image - bias
                 # check for bad regions (not illuminated) in the spatial direction
@@ -839,13 +839,13 @@ def ap_trace(image, object_keyword,
         plt.show()
 
     if display is False:
-        plt.title('Trace region of ' + target_name)
         show_image(img)
+        plt.title('Trace region of ' + target_name)
         # plt.axhline(trace_ymin)
         # plt.axhline(trace_ymax)
         plt.savefig(target_name+'_'+ file_name +'_trace_region.png')
+        plt.clf()
         plt.close()
-
 
     img_window = img[:,:]
     # img_window = img[trace_ymin:trace_ymax,:]
@@ -906,23 +906,64 @@ def ap_trace(image, object_keyword,
 
     # Manual trace
 
-    if manual_trace is True:
-        def man_fit(manual_x,manual_y,manual_poly_order):
-            ap_spl_man = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
-            p_man = np.poly1d(ap_spl_man[0])
-            my_man = p_man(xbins) #+ trace_ymin
-            show_image(img)
-            plt.plot(xbins,my_man,'--r')
-            plt.plot(manual_x,manual_y,'or')
-            plt.show()
-            return ap_spl_man, p_man, my_man
+    def man_fit(manual_x,manual_y,manual_poly_order,trace_width=None,mx=None,my=None):
+        ap_spl = np.polyfit(manual_x, manual_y, deg=manual_poly_order,full=True)
+        p = np.poly1d(ap_spl[0])
+        mx = np.arange(0, img_window.shape[Saxis])
+        my = p(mx) #+ trace_ymin
+        show_image(img)
+        plt.title('Fitted trace region of ' + target_name)
+        plt.plot(mx,my,'--r')
+        plt.plot(manual_x,manual_y,'or')
+        if (trace_width is not None) and (mx is not None) and (my is not None):
+            plt.plot(mx,my - trace_width*.5,'k',label='Trace width')
+            plt.plot(mx,my + trace_width*.5,'k')
+        plt.legend(loc=1)
+        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+        plt.show()
+        return ap_spl, p, my
+
+    def auto_trace_fails():
+        plt.clf()
+        plt.close()
+        # Show trace 
+        show_image(img)
+        plt.title('{} trace unsuccessful, note a few x & y points for trace'.format(target_name))
+        plt.show()
+        manual_x = input('Add list of x posiitons (e.g 10 50 100): ').split(' ')
+        manual_y = input('Add list of y posiitons (e.g 10 11 15): ').split(' ')
+        trace_width = float(input('Add trace width in pixels: '))
+        manual_poly_order = int(input('Enter polynomial order for fitting: '))
+        manual_x = [float(i) for i in manual_x]
+        manual_y = [float(i) for i in manual_y]
+        
         ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
         adjust = input('Would you like to adjust trace positions? (y/n) ')
         while adjust == 'y':
             manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
             manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
+            trace_width = float(input('Add trace width in pixels: '))
+            manual_poly_order = int(input('Enter polynomial order for fitting: '))
             ap_spl_man, p_man, my_man = man_fit(manual_x,manual_y,manual_poly_order)
             adjust = input('Would you like to adjust trace positions? (y/n) ')
+        if adjust == 'n':
+            show_image(img)
+            plt.title('Trace region of ' + target_name)
+            p = np.poly1d(ap_spl_man[0])
+            # interpolate the spline to 1 position per column
+            mx = np.arange(0, img_window.shape[Saxis])
+            my = p(mx) #+ trace_ymin
+            plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+            plt.plot(mx,my - trace_width*.5,'k',label='Trace width')
+            plt.plot(mx,my + trace_width*.5,'k')
+            plt.legend(loc=1)
+            plt.show()
+            
+            ap_spl = ap_spl_man
+            myfwhm = trace_width*.5
+            mxbins = None
+
+            return my, myfwhm, ap_spl
         
 
     def straight(x,m,c):
@@ -931,175 +972,207 @@ def ap_trace(image, object_keyword,
 
     slope, intercept, r_value, p_value, std_err = linregress([xbins[0],xbins[-1]],[y0_trace,yf_trace])
     yvals_line = straight(xbins,slope,intercept)
-    
-    plt.figure(figsize=(10, 7))
-    for i in range(0,len(xbins)-1):
-        #-- fit gaussian w/i each window
-        if Saxis == 1:
-            zi = np.sum(img_window[ydata2, xbins[i]:xbins[i+1]], axis=Saxis)
-        else:
-            zi = img_window[xbins[i]:xbins[i+1], ydata2].sum(axis=Saxis)
-
-        # plt.clf()
-        peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=trace_prominence,threshold=tolerance)
-        # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)])
-        # plt.plot(yi[np.isfinite(ztot)][peaks], zi[np.isfinite(ztot)][peaks], "x")
-        # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)],'r')
-        # plt.title(xbins[i])
-        # plt.show()
-
-        # input('Enter')
-
-        trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-        # tolerance = 2
-    
-        if i == 0:
-            # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
-            pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_start, 2.]
-            popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess, 
-                bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
-            if abs(yvals_line[i]-popt[2]) > tolerance:
-                y1_trace = yvals_line[i]
-            else:
-                y1_trace = popt[2]
-            # print (trace_start,y1_trace,popt[2])
-            # input()
-        if i >= 1:
-            trace_next = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
-            pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_next, 2.]
-            popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess,
-                bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
-                #  bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
-                # ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
-            # print (trace_next,popt[2])
-            if abs(yvals_line[i]-popt[2]) > tolerance:
-                y1_trace = yvals_line[i]
-                # y0_trace = yvals_line[i]
-            else:
-                y1_trace = popt[2]
-                # y0_trace = popt[2]
-        
-        plt.subplot(1, 2, 1)
-        plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)]) # ,label=str(xbins[i])+' - '+str(np.round(popt[2],2))
-        if i == int(nsteps*.5):
-            plt.axvline(popt[2]-tolerance,color='k',ls='--')
-            plt.axvline(popt[2]+tolerance,color='k',ls='--')
-        plt.xlabel('Row Number')
-        plt.ylabel('Intensity')
-        
-        # plt.plot(yi[np.isfinite(ztot)],_gaus(yi[np.isfinite(ztot)],*popt),'ro:',label='fit')
-        
-        ybins[i] = y1_trace #popt[2]
-        fwhm[i] = popt[3]*gaussian_sigma_to_fwhm 
-
-    # recenter the bin positions, trim the unused bin off in Y
-
-    # input()
-
-    Mxbins = (xbins[:-1]+xbins[1:]) / 2.
-    Mybins = ybins[:-1]
-
-    if trace_width == None:
-        myfwhm = max(fwhm)*1.2
-        # print (fwhm, myfwhm)
-        # input()
-    else:
-        myfwhm = trace_width
-
-    # mxbins[0] = 0
-    # mybins[0] =  5.29467085
-    # print (mxbins,mybins)
 
     
-    def distance(x,y,tolerance):
-        mxbins = []
-        mybins = []
-        for i in range(len(x)-1):
-            d = y[i+1] - y[i] 
-            # print (d)
-            if d < .5*tolerance:
-                mxbins.append(x[i])
-                mybins.append(y[i])
-        return mxbins, mybins
+    # plt.figure(figsize=(10, 7))
 
-    mxbins, mybins = distance(Mxbins,Mybins,tolerance)
-
-
-    ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
-    print ('residuals = ',ap_spl[4])
-
-    p = np.poly1d(ap_spl[0])
-
-    # interpolate the spline to 1 position per column
-    mx = np.arange(0, img_window.shape[Saxis])
-    my = p(mx) #+ trace_ymin
-
-
-
-
-    if display is True:
-        plt.title('Gaussian fitted to trace of ' + target_name)
-        # plt.legend(loc='best')
-        plt.subplot(1, 2, 2)
-        plt.title('Fitted centers of trace')
-        plt.plot(mxbins,mybins,'k.')
-        plt.plot(mxbins,p(mxbins),'r:',label='fit')
-        res = '%.1e' % ap_spl[4]
-        plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-        plt.xlabel('Column Number')
-        plt.ylabel('Row Number')
-        plt.legend(loc='best')
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
-        plt.show()
-
-        show_image(img)
-        plt.autoscale(False)
-        plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-        plt.plot(mx,my - myfwhm,'k',label='Trace width')
-        plt.plot(mx,my + myfwhm,'k')
-        if manual_trace is True:
-            plt.plot(xbins,my_man,'r',label='Manual trace')
-            plt.plot(manual_x,manual_y,'or')
-        plt.legend(loc='best')
-        plt.title('Trace region of ' + target_name)
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
-        plt.show()
-    
-    if display is False:
-        plt.title('Gaussian fitted to trace of ' + target_name)
-        # plt.legend(loc='best')
-        plt.subplot(1, 2, 2)
-        plt.title('Fitted centers of trace')
-        plt.plot(mxbins,mybins,'k.')
-        plt.plot(mxbins,p(mxbins),'r:',label='fit')
-        res = '%.1e' % ap_spl[4]
-        plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-        plt.xlabel('Column Number')
-        plt.ylabel('Row Number')
-        plt.legend(loc='best')
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
-        plt.close()
-
-        show_image(img)
-        plt.autoscale(False)
-        plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-        plt.plot(mx,my - myfwhm,'k',label='Trace width')
-        plt.plot(mx,my + myfwhm,'k')
-        if manual_trace is True:
-            plt.plot(xbins,my_man,'r',label='Manual trace')
-            plt.plot(manual_x,manual_y,'or')
-        plt.legend(loc='best')
-        plt.title('Trace region of ' + target_name)
-        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
-        plt.close()
-
-    plt.close()
-    # print("> Trace gaussian width = "+str(popt_tot[3])+' pixels')
-    # print (my, myfwhm)
     if manual_trace is True:
-        return my, myfwhm, ap_spl, my_man, ap_spl_man
-    else:    
-        return my, myfwhm, ap_spl
+        ap_spl, p, my = man_fit(manual_x,manual_y,manual_poly_order)
+        adjust = input('Would you like to adjust trace positions? (y/n) ')
+        while adjust == 'y':
+            manual_x = [float(kk) for kk in input('Enter x values: (eg. 0 1000 ... 1700) ').split()]
+            manual_y = [float(kk) for kk in input('Enter y values: (eg. 25 27 ... 30) ').split()]
+            ap_spl, p, my = man_fit(manual_x,manual_y,manual_poly_order)
+            adjust= input('Would you like to adjust trace positions? (y/n) ')
+        trace_width = float(input('Enter trace width in pixels: '))
+        poly_order = float(input('Enter polynomial order: '))
+        def trace_manual_adjust(p,poly_order,trace_width,adjust=None):
+            # interpolate the spline to 1 position per column
+            mx = np.arange(0, img_window.shape[Saxis])
+            my = p(mx) #+ trace_ymin
+
+            ap_spl, p, my = man_fit(manual_x,manual_y,poly_order,trace_width=trace_width,mx=mx,my=my)
+            adjust = str(input('Would you like to adjust the trace width or polynomial order ? (y/n) '))
+            return adjust, ap_spl, p, my, trace_width
+        adjust, ap_spl, p, my, trace_width = trace_manual_adjust(p,poly_order,trace_width)
+        while adjust == 'y':
+            trace_width = float(input('Enter trace width in pixels: '))
+            poly_order = float(input('Enter polynomial order: '))
+            adjust, ap_spl, p, my, trace_width = trace_manual_adjust(p,poly_order,trace_width)
+        myfwhm = trace_width*.5
+        # return my, myfwhm, ap_spl
+
+    if manual_trace is not True:
+        try:
+            for i in range(0,len(xbins)-1):
+                #-- fit gaussian w/i each window
+                if Saxis == 1:
+                    zi = np.sum(img_window[ydata2, xbins[i]:xbins[i+1]], axis=Saxis)
+                else:
+                    zi = img_window[xbins[i]:xbins[i+1], ydata2].sum(axis=Saxis)
+                #
+                # plt.clf()
+                peaks, _ = find_peaks(zi[np.isfinite(ztot)], prominence=trace_prominence,threshold=tolerance)
+                # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)])
+                # plt.plot(yi[np.isfinite(ztot)][peaks], zi[np.isfinite(ztot)][peaks], "x")
+                # plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)],'r')
+                # plt.title(xbins[i])
+                # plt.show()
+                #
+                # input('Enter')
+                #
+                trace_start = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
+                #
+                if i == 0:
+                    # inten = np.nansum(img_window[xbins[i],trace_start-tolerance:trace_start+tolerance])
+                    pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_start, 2.]
+                    popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess, 
+                        bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
+                    if abs(yvals_line[i]-popt[2]) > tolerance:
+                        y1_trace = yvals_line[i]
+                    else:
+                        y1_trace = popt[2]
+                    # print (trace_start,y1_trace,popt[2])
+                    # input()
+                if i >= 1:
+                    trace_next = min(yi[np.isfinite(ztot)][peaks], key=lambda x:abs(x-yvals_line[i])) 
+                    pguess = [np.abs(np.nanmax(zi)),np.abs( np.nanmedian(zi)), trace_next, 2.]
+                    popt,pcov = curve_fit(_gaus, yi[np.isfinite(ztot)], zi[np.isfinite(ztot)], p0=pguess,
+                        bounds=(0,[abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_start+tolerance, 4.]))
+                        #  bounds=(([abs(np.nanmax(zi)*.1), abs(np.nanmedian(zi)*.1), 0, 0]),
+                        # ([abs(np.nanmax(zi)*10), abs(np.nanmedian(zi)*10), trace_next+tolerance, 4.])))
+                    # print (trace_next,popt[2])
+                    if abs(yvals_line[i]-popt[2]) > tolerance:
+                        y1_trace = yvals_line[i]
+                        # y0_trace = yvals_line[i]
+                    else:
+                        y1_trace = popt[2]
+                        # y0_trace = popt[2]
+                #
+                plt.subplot(1, 2, 1)
+                plt.plot(yi[np.isfinite(ztot)],zi[np.isfinite(ztot)]) # ,label=str(xbins[i])+' - '+str(np.round(popt[2],2))
+                if i == int(nsteps*.5):
+                    plt.axvline(popt[2]-tolerance,color='k',ls='--')
+                    plt.axvline(popt[2]+tolerance,color='k',ls='--')
+                plt.xlabel('Row Number')
+                plt.ylabel('Intensity')
+                #
+                # plt.plot(yi[np.isfinite(ztot)],_gaus(yi[np.isfinite(ztot)],*popt),'ro:',label='fit')
+                #
+                ybins[i] = y1_trace #popt[2]
+                fwhm[i] = popt[3]*gaussian_sigma_to_fwhm 
+            #
+            Mxbins = (xbins[:-1]+xbins[1:]) / 2.
+            Mybins = ybins[:-1]
+            #
+            #
+            # if trace_width is None:
+            #     myfwhm = max(fwhm)*1.2*.5
+
+            if type(trace_width) is str:
+                fac = len(trace_width.split('-'))
+                if fac == 1:
+                    myfwhm = max(fwhm)*1.2*.5
+                    # print (fwhm, myfwhm)
+                    # input()
+                if fac > 1:
+                    factor = float(trace_width.split('-')[0])
+                    myfwhm = max(fwhm)*1.2*.5*factor
+            else:
+                myfwhm = trace_width
+                #
+        except: # When something goes wrong with the tracing and your FWHM is wrong
+            my, myfwhm, ap_spl = auto_trace_fails()
+            plt.close()
+
+                #
+        if myfwhm < 1:
+            my, myfwhm, ap_spl = auto_trace_fails()
+            plt.close()
+        #
+        else:
+            def distance(x,y,tolerance):
+                mxbins = []
+                mybins = []
+                for i in range(len(x)-1):
+                    d = y[i+1] - y[i] 
+                    # print (d)
+                    if d < .5*tolerance:
+                        mxbins.append(x[i])
+                        mybins.append(y[i])
+                return mxbins, mybins
+            #
+            mxbins, mybins = distance(Mxbins,Mybins,tolerance)
+            #
+            ap_spl = np.polyfit(mxbins, mybins, deg=poly_order,full=True)
+            print ('residuals = ',ap_spl[4])
+            #
+            p = np.poly1d(ap_spl[0])
+            #
+            # interpolate the spline to 1 position per column
+            mx = np.arange(0, img_window.shape[Saxis])
+            my = p(mx) #+ trace_ymin
+            #
+            #
+        if ap_spl is not None:
+            if display is True:
+                if mxbins is not None:
+                    plt.title('Gaussian fitted to trace of ' + target_name)
+                    # plt.legend(loc='best')
+                    plt.subplot(1, 2, 2)
+                    plt.title('Fitted centers of trace')
+                    plt.plot(mxbins,mybins,'k.')
+                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
+                    res = '%.1e' % ap_spl[4]
+                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
+                    plt.xlabel('Column Number')
+                    plt.ylabel('Row Number')
+                    plt.legend(loc='best')
+                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                    plt.show()
+                #
+                show_image(img)
+                plt.autoscale(False)
+                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+                plt.plot(mx,my - myfwhm,'k',label='Trace width')
+                plt.plot(mx,my + myfwhm,'k')
+                # if manual_trace is True:
+                #     plt.plot(xbins,my_man,'r',label='Manual trace')
+                #     plt.plot(manual_x,manual_y,'or')
+                plt.legend(loc='best')
+                plt.title('Trace region of ' + target_name)
+                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+                plt.show()
+                #
+            if display is False:
+                if mxbins is not None:
+                    plt.title('Gaussian fitted to trace of ' + target_name)
+                    # plt.legend(loc='best')
+                    plt.subplot(1, 2, 2)
+                    plt.title('Fitted centers of trace')
+                    plt.plot(mxbins,mybins,'k.')
+                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
+                    res = '%.1e' % ap_spl[4]
+                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
+                    plt.xlabel('Column Number')
+                    plt.ylabel('Row Number')
+                    plt.legend(loc='best')
+                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                    plt.close()
+                #
+                show_image(img)
+                plt.autoscale(False)
+                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+                plt.plot(mx,my - myfwhm,'k',label='Trace width')
+                plt.plot(mx,my + myfwhm,'k')
+                plt.legend(loc='best')
+                plt.title('Trace region of ' + target_name)
+                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+                plt.close()
+                #
+            plt.close()
+            #
+    return my, myfwhm, ap_spl
 
 # my, myfwhm, trace_c = ap_trace(IMAGE, fmask=(1,), nsteps=5, interac=False,
 #              recenter=True, prevtrace=(0,), bigbox=15,
@@ -1354,9 +1427,15 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
 
     interact = view_arc
 
-    spec_sum = np.flip(onedspec_sum)
+    if flip_wave_axis is True:
+        spec_sum = np.flip(onedspec_sum)
+    else:
+        spec_sum = (onedspec_sum)
     if onedspec_optimal is not None:
-        spec_optimal = np.flip(onedspec_optimal)
+        if flip_wave_axis is True:
+            spec_optimal = np.flip(onedspec_optimal)
+        else:
+            spec_optimal = (onedspec_optimal)
 
     cwd = os.getcwd()
     data_dir = cwd
@@ -1936,7 +2015,15 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # https://www.eso.org/sci/observing/tools/standards/spectra/
     file_name = science_spec.split('.')[0].split('_reduced')[0]
     file_name_std = standard_reduced_spec.split('.')[0].split('_reduced')[0]
-    w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
+
+    standard_spec = np.loadtxt(standard_reduced_spec,skiprows=1,unpack=True)
+    
+    if len(standard_spec) == 3:
+        w_stand, sum_stand = standard_spec[0], standard_spec[1]
+
+    if len(standard_spec) == 5:
+        w_stand, sum_stand, opt_stand = standard_spec[0], standard_spec[1], standard_spec[3]
+    # w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
 
     data =  np.loadtxt(science_spec,skiprows=1,unpack=True)
     if len(data) == 3:
@@ -1956,7 +2043,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/okestan/ffeige67.dat', dtype=dtype)
     # calspec = np.genfromtxt('fltt3218.dat', dtype=dtype)
 
-    try:
+    def response(w,f):
         if standard_name == 'ltt3218':
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt3218.dat',dtype=dtype)
         if standard_name == 'eg21':
@@ -1969,6 +2056,8 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd32d9927.dat',dtype=dtype)
         if standard_name == 'ltt7379':  
             calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7379.dat',dtype=dtype)
+        if standard_name == 'ltt7987':  
+            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7987.dat',dtype=dtype)
         # fit a spline to the tabulated spectrum
         t = np.arange(calspec['wav'][1], calspec['wav'][-2], np.int(np.median(calspec['dlam'])))
         # print (calspec['dlam'])
@@ -1984,79 +2073,111 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         # fit a spline to the ratios to determine the response function
         t = waves[w][1:-2:25]
         respfn = LSQUnivariateSpline(waves[w], ratios[w], t)
+        return respfn, waves, ratios, w, std_spec, calspec
+
+    try:
+        if len(data) == 3 :
+                respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+                respfn_optimal = None
+        elif (len(data) == 5) and (len(standard_spec) == 5):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal, waves_optimal, ratios_optimal, w_optimal, std_spec_optimal, calspec_optimal = response(w_stand, opt_stand)
+        elif (len(data) == 5) and (len(standard_spec) == 3):
+            respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
+            respfn_optimal = None
+
 
         f = open(science_spec.split('_reduced.dat')[0]+'_fluxcal.dat','w')
-        if optimal is not None:
+        if respfn_optimal is not None:
             f.write('wavelength spec_sum spec_optimal\n')
             for ii in range(7,len(waves_cor)-3):
-                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn(waves_cor[ii])))
+                f.write('%g %g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii]),opt_spec[ii] / respfn_optimal(waves_cor[ii])))
             f.close()
         else:
             f.write('wavelength spec_sum\n')
             for ii in range(7,len(waves_cor)-3):
                 f.write('%g %g\n' % (waves_cor[ii], sum_spec[ii] / respfn(waves_cor[ii])))
             f.close()
-        # compare the tabulated and extracted flux densities (applying the response function)
-        if display is True:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
+        
+        #
+        #Plot response function
+        #
+        optimal = respfn_optimal
+        
+        plt.clf()
+        plt.close()
+        if respfn_optimal is not None:
+            plt.subplot(211)
+        plt.title('Calibrating the standard:' + standard_reduced_spec.split('_reduced.dat')[0])
+        plt.plot(waves[w], ratios[w], 'ro',ms=1.,label='Summed spectrum')
+        xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
+        plt.plot(xwav, respfn(xwav))
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
+            plt.plot(waves_optimal[w_optimal], ratios_optimal[w_optimal], 'ro',ms=1.,label='Optimal spectrum')
+            xwav = np.linspace(waves_optimal[w_optimal][1], waves_optimal[w_optimal][-1], 1000)
+            plt.plot(xwav, respfn_optimal(xwav))
             plt.xlabel('Wavelength ($\AA$)')
             plt.ylabel('Response Function $\\left(\\frac{Counts}{F_{\lambda}}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
+            plt.legend(loc=1)
+        
+        plt.savefig(file_name_std+'_fluxcal_response.png')
+        if (display is True):
             plt.show()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.legend(loc='best')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.show()
-        if display is False:
-            plt.title('Calibrated standard: ' + standard_reduced_spec.split('_reduced.dat')[0])
-            plt.plot(waves[w], ratios[w], 'ro',ms=1.)
-            xwav = np.linspace(waves[w][1], waves[w][-1], 1000)
-            plt.plot(xwav, respfn(xwav))
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(file_name_std+'_fluxcal_response.png')
-            plt.close()
-            #
-            plt.title('Calibrated standard: ' + standard_reduced_spec)
-            plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
-            plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.yscale('log')
-            plt.savefig(file_name_std+'_fluxcal_standard.png')
-            plt.close()
-        if display is True:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.show()
-        if display is False:
-            plt.figure(figsize=(10, 5))
-            plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
-            if optimal is not None:
-                plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn(waves_cor[7:-3]),label='Optimal trace',color='orange')
-            plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
-            plt.legend(loc='best')
-            plt.xlabel('Wavelength ($\AA$)')
-            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
-            plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
-            plt.close()
+        plt.clf()
+        plt.close()
+
         #
+        #Plot calibrated standard
+        #
+        if respfn_optimal is not None:
+            plt.subplot(211)
+
+        plt.title('Calibrated standard: ' + standard_reduced_spec)
+        plt.plot(calspec['wav'][7:-3], calspec['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+        plt.plot(waves[7:-3], std_spec[7:-3] / respfn(waves[7:-3]), label='Summed extracted Spectrum')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.yscale('log')
+        plt.legend(loc=1)
+
+        if respfn_optimal is not None:
+            plt.subplot(212)
+            # plt.title('Calibrated standard: ' + standard_reduced_spec)
+            plt.plot(calspec_optimal['wav'][7:-3], calspec_optimal['flux'][7:-3], label='Tabulated (published) Spectrum',color='orange')
+            plt.plot(waves_optimal[7:-3], std_spec_optimal[7:-3] / respfn_optimal(waves_optimal[7:-3]), label='Optimal extracted spectrum')
+            plt.xlabel('Wavelength ($\AA$)')
+            plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+            plt.yscale('log')
+            plt.legend(loc=1)
+
+        plt.savefig(file_name_std+'_fluxcal_standard.png')
+        if display is True:
+            plt.show()
+        plt.clf()
+        plt.close()
+        #
+        # Plot flux calibrated spectra
+        #
+        plt.figure(figsize=(10, 5))
+        plt.title('Flux calibrated: '+science_spec.split('_reduced.dat')[0])
+        if optimal is not None:
+            plt.plot(waves_cor[7:-3], opt_spec[7:-3] / respfn_optimal(waves_cor[7:-3]),label='Optimal trace',color='orange')
+        plt.plot(waves_cor[7:-3], sum_spec[7:-3] / respfn(waves_cor[7:-3]),label='Summed trace')
+        plt.legend(loc='best')
+        plt.xlabel('Wavelength ($\AA$)')
+        plt.ylabel('$F_{\lambda} \: \left(\\frac{ergs}{cm^2\, s\, \AA} \: \\times 10^{16}\\right)$')
+        plt.savefig(science_spec.split('_reduced.dat')[0]+'_fluxcal.png')
+        if display is True:
+            plt.show()
+        plt.clf()
+        plt.close()
+ 
     except NameError:
         print ('Standard not found, add standard eso url to script')
         print ('File: '+science_spec)
