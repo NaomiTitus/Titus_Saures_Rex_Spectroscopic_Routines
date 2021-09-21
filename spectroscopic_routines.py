@@ -1402,9 +1402,16 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
 
     interact = view_arc
 
-    spec_sum = np.flip(onedspec_sum)
+    if flip_wave_axis is True:
+        spec_sum = np.flip(onedspec_sum)
+    else:
+        spec_sum = (onedspec_sum)
     if onedspec_optimal is not None:
-        spec_optimal = np.flip(onedspec_optimal)
+        if flip_wave_axis is True:
+            spec_optimal = np.flip(onedspec_optimal)
+        else:
+            spec_optimal = (onedspec_optimal)
+
 
     cwd = os.getcwd()
     data_dir = cwd
