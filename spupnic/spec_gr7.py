@@ -294,7 +294,7 @@ if run_pipeline is True:
 	    				optimal_spec = None
 
 	    		#
-	    		onedspec, fluxerr, variancespec = ap_extract(
+	    		onedspec, fluxerr, variancespec, snr_spec = ap_extract(
 	    			k, 
 	    			trace = my, 
 	    			apwidth = round(myfwhm), 
@@ -311,6 +311,7 @@ if run_pipeline is True:
 	    			onedspec,
 	    			onedspec_optimal = optimal_spec,
 	    			spec_file_name = spec_file,
+	    			snr_spec = snr_spec,
 	    			arc_file = arc,
 	    			reference_spec = reference_spec,
 	    		    line_list = line_list,

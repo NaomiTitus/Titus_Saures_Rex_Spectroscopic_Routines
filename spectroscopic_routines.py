@@ -1302,7 +1302,8 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
             readnoise = readnoise_keyword
         # gain = float(header[gain_keyword])  #1.145
         # readnoise = float(header[readnoise_keyword])  # 2.245
-        variancespec[i] = readnoise + image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()/gain 
+        variancespec[i] = readnoise + image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()/gain
+    snr_spec = (onedspec-skysubflux)/np.sqrt(variancespec) 
 
 
     # print (test,test.shape)
@@ -1359,9 +1360,9 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
 
     plt.close()
     if sky is True:
-        return onedspec, fluxerr, variancespec
+        return onedspec, fluxerr, variancespec, snr_spec
     if sky is False:
-        return onedspec-skysubflux, fluxerr, variancespec
+        return onedspec-skysubflux, fluxerr, variancespec, snr_spec
 
 
 def redshift(w,z= 0.00093):    
@@ -1370,7 +1371,7 @@ def redshift(w,z= 0.00093):
 
 
 def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,arc_file,reference_spec,line_list,trace,trace_fwhm,
-    prominence,parameter_file,order,object_keyword,flip_wave_axis=False,view_arc=False,display=False):
+    prominence,parameter_file,order,object_keyword,snr_spec=None,flip_wave_axis=False,view_arc=False,display=False):
     """
     1. Apply wavelength solution to onedspec from apextract.
     2. Fits a polynomial to interpolate between supplied column numbers and wavelength space
@@ -1429,8 +1430,11 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
 
     if flip_wave_axis is True:
         spec_sum = np.flip(onedspec_sum)
+        if snr_spec is not None:
+            snr_spec = np.flip(snr_spec)
     else:
         spec_sum = (onedspec_sum)
+        snr_spec = snr_spec
     if onedspec_optimal is not None:
         if flip_wave_axis is True:
             spec_optimal = np.flip(onedspec_optimal)
@@ -1893,82 +1897,84 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
 
     pixel_scale = (max(wavs) - min(wavs))/len(lamp_spec)
 
+    # plot the initial wavelength calibrated spectrum
+    plt.close()
+    plt.figure(figsize=(15, 7))
+    plt.plot(wavs, lamp_spec, c='g', lw=2, label='Arc spectrum')
+    # plot the reference spectrum in red
+    plt.plot(lamp_ref['wav'], lamp_ref['counts'], label='Reference', c='r')
+    plt.xlim(wav1, wav2)
+    plt.xlabel('Wavelength ($\AA$)'); plt.ylabel('Counts')
+    mark_matched(refwavs)
+    plt.legend(loc='best')
+    plt.title('Polynomial fitting order: '+ str(order)+ ', \
+        STD of wavelength residual: '+str(np.round(std,2)) +' $\AA$,'\
+        + ' Pixel scale = ' + str(np.round(pixel_scale,2)) +' $\AA$/pix')
+    plt.savefig(target_name+'_'+file_name+'_traced_arc.png')
     if display is True:
-        # plot the initial wavelength calibrated spectrum
-        plt.close()
-        plt.figure(figsize=(15, 7))
-        plt.plot(wavs, lamp_spec, c='g', lw=2, label='Arc spectrum')
-        # plot the reference spectrum in red
-        plt.plot(lamp_ref['wav'], lamp_ref['counts'], label='Reference', c='r')
-        plt.xlim(wav1, wav2)
-        plt.xlabel('Wavelength ($\AA$)'); plt.ylabel('Counts')
-        mark_matched(refwavs)
-        plt.legend(loc='best')
-        plt.title('Polynomial fitting order: '+ str(order)+ ', \
-            STD of wavelength residual: '+str(np.round(std,2)) +' $\AA$,'\
-            + ' Pixel scale = ' + str(np.round(pixel_scale,2)) +' $\AA$/pix')
-        plt.savefig(target_name+'_'+file_name+'_traced_arc.png')
         plt.show()
-
-    if display is False:
-        # plot the initial wavelength calibrated spectrum
+    else: 
         plt.close()
-        plt.figure(figsize=(15, 7))
-        plt.plot(wavs, lamp_spec, c='g', lw=2, label='Arc spectrum')
-        # plot the reference spectrum in red
-        plt.plot(lamp_ref['wav'], lamp_ref['counts'], label='Reference', c='r')
-        plt.xlim(wav1, wav2)
-        plt.xlabel('Wavelength ($\AA$)'); plt.ylabel('Counts')
-        mark_matched(refwavs)
-        plt.legend(loc='best')
-        plt.title('Polynomial fitting order: '+ str(order)+ \
-            ', STD of wavelength residual: '+str(np.round(std,2)) +' $\AA$,'\
-            + ' Pixel scale = ' + str(np.round(pixel_scale,2)) +' $\AA$/pix')
-        plt.savefig(target_name+'_'+file_name+'_traced_arc.png')
-        plt.close()
-
-
-    #
 
     spec_smooth_sum = smooth(spec_sum,3)
     if onedspec_optimal is not None:
         spec_smooth_optimal = smooth(spec_optimal,3)
 
 
-
+    plt.plot(wavs_more, spec_smooth_sum,linewidth=1.,label='Summed trace')
+    if onedspec_optimal is not None:
+        plt.plot(wavs_more, spec_smooth_optimal,linewidth=1.,label='Optimal trace',color='orange')
+    plt.title('Reduced spectrum of '+spec_file_name+': ' +target_name)
+    plt.xlabel('Wavelength $\AA$')
+    plt.ylabel('Counts')
+    plt.legend(loc='best')
+    plt.savefig(target_name+'_'+spec_file_name+'_reduced_spectrum.png')
     if display is True:
-        plt.plot(wavs_more, spec_smooth_sum,linewidth=1.,label='Summed trace')
-        if onedspec_optimal is not None:
-            plt.plot(wavs_more, spec_smooth_optimal,linewidth=1.,label='Optimal trace',color='orange')
-        plt.title('Reduced spectrum of '+spec_file_name+': ' +target_name)
-        plt.xlabel('Wavelength $\AA$')
-        plt.ylabel('Counts')
-        plt.legend(loc='best')
-        plt.savefig(target_name+'_'+spec_file_name+'_reduced_spectrum.png')
         plt.show()
+    else:
+        # plt.clf()
+        plt.close()
 
-    if display is False:
-        plt.plot(wavs_more, spec_smooth_sum,linewidth=1.,label='Summed trace')
-        if onedspec_optimal is not None:
-            plt.plot(wavs_more, spec_smooth_optimal,linewidth=1.,label='Optimal trace',color='orange')
-        plt.title('Reduced spectrum of '+spec_file_name+': ' +target_name)
+    if snr_spec is not None:
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1,2,1)
+        plt.plot(wavs_more,spec_smooth_sum,linewidth=1.,label='Summed trace')
+        plt.legend(loc='best')
+        plt.title('Extracted spectrum: '+ target_name)
         plt.xlabel('Wavelength $\AA$')
         plt.ylabel('Counts')
-        plt.legend(loc='best')
-        plt.savefig(target_name+'_'+spec_file_name+'_reduced_spectrum.png')
-        plt.close()
+        #
+        plt.subplot(1,2,2)
+        plt.title('S/N spectrum: '+ target_name)
+        plt.plot(wavs_more,snr_spec)
+        plt.ylabel('S/N')
+        plt.xlabel('Wavelength $\AA$')
+        plt.savefig(target_name+'_'+spec_file_name+'_snr_spectrum.png')
+        if display is True:
+            plt.show()
+        else:
+            # plt.clf()
+            plt.close()
 
     # fname = k.split('.')[0]
     f = open(target_name+'_'+spec_file_name+'_reduced.dat','w')
     if onedspec_optimal is not None:
-        f.write('wavelength spectrum_sum 3smoothed_sum spectrum_optimal 3smoothed_optimal\n')
+        f.write('wavelength spectrum_sum 3smoothed_sum spectrum_optimal 3smoothed_optimal spectrum_snr\n')
         for ii in range(len(wavs)):
-            f.write('%g %g %g %g %g\n' % (wavs_more[ii], spec_sum[ii],spec_smooth_sum[ii],spec_optimal[ii],spec_smooth_optimal[ii]))
+            f.write('%g %g %g %g %g %g\n' % (wavs_more[ii], 
+                spec_sum[ii],
+                spec_smooth_sum[ii],
+                spec_optimal[ii],
+                spec_smooth_optimal[ii],
+                snr_spec[ii]))
         f.close()
     else:
-        f.write('wavelength spectrum_sum 3smoothed_sum\n')
+        f.write('wavelength spectrum_sum 3smoothed_sum spectrum_snr\n')
         for ii in range(len(wavs)):
-            f.write('%g %g %g\n' % (wavs_more[ii], spec_sum[ii],spec_smooth_sum[ii]))
+            f.write('%g %g %g %g\n' % (wavs_more[ii], 
+                spec_sum[ii],
+                spec_smooth_sum[ii],
+                snr_spec[ii]))
         f.close()
 
     return interact
@@ -2018,19 +2024,19 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
 
     standard_spec = np.loadtxt(standard_reduced_spec,skiprows=1,unpack=True)
     
-    if len(standard_spec) == 3:
+    if len(standard_spec) < 5:
         w_stand, sum_stand = standard_spec[0], standard_spec[1]
 
-    if len(standard_spec) == 5:
+    if len(standard_spec) >= 5:
         w_stand, sum_stand, opt_stand = standard_spec[0], standard_spec[1], standard_spec[3]
     # w, f = np.loadtxt(standard_reduced_spec,skiprows=1,usecols=(0,1),unpack=True)
 
     data =  np.loadtxt(science_spec,skiprows=1,unpack=True)
-    if len(data) == 3:
+    if len(data) < 5:
         optimal = None
         waves_cor, sum_spec = data[0], data[1]
 
-    if len(data) == 5:
+    if len(data) >= 5:
         optimal = True
         waves_cor, sum_spec, opt_spec = data[0], data[1], data[3]
 
