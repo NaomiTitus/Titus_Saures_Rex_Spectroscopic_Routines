@@ -22,7 +22,7 @@ flip_wave_axis = True
 #############################
 #############################
 
-IMAGES = raw_files_prefix+'*.fits' # or you can a single image
+IMAGES = raw_files_prefix+'*.fits' # or you can a single image or a list of IMAGES
 ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
@@ -93,7 +93,7 @@ manual_x = [3,526,1383,1972]
 manual_y = [29.75,32,35,36]
 trace_prominence = 300
 tolerance = 3
-trace_width = 'fwhm' # or integer for number of pixels
+trace_width = 'fwhm' # or for a factor of 2 of fwhm: '2-fwhm' or just integers for pixels
 poly_order = 2
 fmask = (1,) 
 nsteps = 25
