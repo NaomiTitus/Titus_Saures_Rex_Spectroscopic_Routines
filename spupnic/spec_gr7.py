@@ -22,7 +22,7 @@ flip_wave_axis = True
 #############################
 #############################
 
-IMAGES =  raw_files_prefix+'*.fits' # or you can a single image
+IMAGES = raw_files_prefix+'*.fits' # or you can a single image
 ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
 
 
@@ -215,14 +215,14 @@ if run_pipeline is True:
 	    	y2 = ymax,
 	    	output_prefix = Trim_ouput_prefix)
 
-	for k in IMAGES:
-	    gr = image_header(k,grating_keyword)
+	for kk in range(len(IMAGES)):
+	    gr = image_header(IMAGES[kk],grating_keyword)
 	    if gr == grating:
 	    	appy_calibrations(apply_call = apply_call,
 	    		identifying_keyword = identifying_keyword,
 	    		science_keyword = science_keyword, 
 	    		files_prefix = None,
-	    		file = cal_file_prefix+k,
+	    		file = cal_file_prefix+IMAGES[kk],
 	    		masterbias = masterbias,
 	    		masterflat = masterflat,
 	    		cosmicray_removal = cosmicray_removal,
@@ -237,16 +237,23 @@ if run_pipeline is True:
 	    		maxiter = maxiter, 
 	    		border_mode = border_mode)
 	    	#
-	    	exposure_type = image_header(k,identifying_keyword)
+	    	exposure_type = image_header(IMAGES[kk],identifying_keyword)
 	    	if exposure_type == science_keyword:
-	    		print(k,exposure_type)
-	    		number = int(k.split('.')[0].split(raw_files_prefix)[1])
+	    		print(IMAGES[kk],exposure_type)
+	    		number = int(IMAGES[kk].split('.')[0].split(raw_files_prefix)[1])
 	    		if type(ARC) is int:
-	    			arc = 't'+raw_files_prefix+str(number+ARC)+'.fits'
+	    			arc = 't' + raw_files_prefix+str(number+ARC)+'.fits'
 	    		if type(ARC) is str:
-	    			arc = 't'+ARC
-	    		spec_file = k.split('.fits')[0]
-	    		k = 'cfbt'+k
+	    			arc = 't' + ARC
+	    		if type(ARC) is list:
+	    			if len(ARC) == len(IMAGES):
+	    				arc = 't' + ARC[kk]
+	    			else:
+	    				print ('Arc length list must match Images length list')
+	    				break
+
+	    		spec_file = IMAGES[kk].split('.fits')[0]
+	    		k = 'cfbt'+IMAGES[kk]
 	    		# print (k)
 	    		# input()
 	    		try:
