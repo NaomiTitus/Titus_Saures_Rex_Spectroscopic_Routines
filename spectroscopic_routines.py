@@ -127,7 +127,7 @@ def master_bias(construct_bias,identifying_keyword,bias_keyword,files_prefix,raw
 
 
 def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw_prefix,exp_time_keyword,exp_time,masterbias,
-    output,spatial_axis,mode,response,display):
+    output,spatial_axis,mode,response,display,sp_ext=0,sp_k=2,sp_s=0.001,flat_poly=2):
     if construct_flat is True:
         k = 0
         bias = fits.getdata(masterbias)
@@ -168,7 +168,7 @@ def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw
                 flat_1d = np.log10(convolve(flat_stack[ok].mean(axis=Waxis), Box1DKernel(5)))
                 #
                 if mode=='spline':
-                    spl = UnivariateSpline(xdata, flat_1d, ext=0, k=2 ,s=0.001)
+                    spl = UnivariateSpline(xdata, flat_1d, ext=sp_ext, k=sp_k ,s=sp_s)
                     flat_curve = 10.0**spl(xdata)
                 elif mode=='poly':
                     # fit log flux with polynomial
@@ -180,8 +180,8 @@ def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw
                 plt.plot(10.0**flat_1d)
                 plt.plot(xdata, flat_curve,'r')
                 plt.xlabel('Column number')
-                plt.ylabel('Intensity')
-                plt.savefig(output+'flat_response.png')
+                plt.ylabel('Response')
+                plt.savefig(output.split('.')[0]+'_flat_response.png')
                 if display is True:
                     plt.show()
                 else:

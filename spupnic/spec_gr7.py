@@ -55,10 +55,14 @@ bias_output = 'Bias.fits'
 construct_flat = False
 flat_keyword = 'FLAT' 
 flat_files_prefix = 't'
-flat_exp_time = 4.0
+flat_exp_time = 8.0
 masterbias = 'Bias.fits'
-flat_mode = 'spline'
+flat_mode = 'spline' # or poly
 flat_response = True
+sp_ext = 0				#spline ext
+sp_k = 2  				#spline k
+sp_s = 0.001 			#spline s
+flat_poly_order = 2 	#if poly is chosen, you must provide order
 flat_display = False
 flat_output = 'Flat.fits'
 
@@ -146,7 +150,7 @@ display_flux_cal = False
 ##########################################
 
 if (construct_bias is True) or (construct_flat is True): 
-	# IMAGES = glob.glob(raw_files_prefix+'*.fits')
+	IMAGES = glob.glob(raw_files_prefix+'*.fits')
 	bias_files = []
 	flat_files = []
 	for k in IMAGES:
@@ -189,6 +193,10 @@ if (construct_bias is True) or (construct_flat is True):
 			spatial_axis = spatial_axis,
 			mode = flat_mode,
 			response = flat_response,
+			sp_ext = sp_ext,
+			sp_k = sp_k,
+			sp_s = sp_s, 
+			flat_poly = flat_poly_order, 
 			display = flat_display,
 			output = flat_output)
 
