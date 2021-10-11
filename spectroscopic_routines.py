@@ -176,11 +176,18 @@ def master_flat(construct_flat,identifying_keyword,flat_keyword,files_prefix,raw
                     # get rid of log
                     flat_curve = 10.0**np.polyval(flat_fit, xdata)
                 #
+                plt.figure()
+                plt.plot(10.0**flat_1d)
+                plt.plot(xdata, flat_curve,'r')
+                plt.xlabel('Column number')
+                plt.ylabel('Intensity')
+                plt.savefig(output+'flat_response.png')
                 if display is True:
-                    plt.figure()
-                    plt.plot(10.0**flat_1d)
-                    plt.plot(xdata, flat_curve,'r')
                     plt.show()
+                else:
+                    plt.clf()
+                    plt.close()
+
                 #
                 # divide median stacked flat by this RESPONSE curve
                 flat = np.zeros_like(flat_stack)
