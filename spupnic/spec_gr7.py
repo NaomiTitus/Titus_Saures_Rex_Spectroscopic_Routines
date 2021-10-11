@@ -24,6 +24,7 @@ flip_wave_axis = True
 
 IMAGES = raw_files_prefix+'*.fits' # or you can a single image or a list of IMAGES
 ARC = -1 	# 1: takes arc after, -1: takes arc before or can take file name eg: 'arc.fits'
+final_prefix = 'cfbt' # this may change depending on the calibration performed
 
 
 #############################
@@ -253,7 +254,7 @@ if run_pipeline is True:
 	    				break
 
 	    		spec_file = IMAGES[kk].split('.fits')[0]
-	    		k = 'cfbt'+IMAGES[kk]
+	    		k = final_prefix+IMAGES[kk]
 	    		# print (k)
 	    		# input()
 	    		try:
