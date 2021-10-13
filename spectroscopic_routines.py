@@ -1307,8 +1307,6 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
             readnoise = float(header[readnoise_keyword]) 
         elif type(readnoise_keyword) == float:
             readnoise = readnoise_keyword
-        # gain = float(header[gain_keyword])  #1.145
-        # readnoise = float(header[readnoise_keyword])  # 2.245
         variancespec[i] = readnoise + image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()/gain
     snr_spec = (onedspec-skysubflux)/np.sqrt(variancespec) 
 

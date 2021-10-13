@@ -94,7 +94,6 @@ display_optimal = False
 skysep = 5
 skywidth = 10
 skydeg = 0
-coaddN = 1
 display_apextract = False
 
 ##########################################
