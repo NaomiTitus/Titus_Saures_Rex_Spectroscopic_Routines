@@ -1079,12 +1079,12 @@ def ap_trace(image, object_keyword,
             if type(trace_width) is str:
                 fac = len(trace_width.split('-'))
                 if fac == 1:
-                    myfwhm = max(fwhm)*1.2*.5
+                    myfwhm = max(fwhm)*1.22*.5
                     # print (fwhm, myfwhm)
                     # input()
                 if fac > 1:
                     factor = float(trace_width.split('-')[0])
-                    myfwhm = max(fwhm)*1.2*.5*factor
+                    myfwhm = max(fwhm)*1.22*.5*factor
             else:
                 myfwhm = trace_width
                 #
@@ -1235,14 +1235,28 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
     cwd = os.getcwd()
     data_dir = cwd
 
-    if image[0] == 's':
-        sky = True
-    else:
-        sky = False
 
     file_name = image.split('.fits')[0]
     image, header = fits.getdata(os.path.join(data_dir,image), header=True) 
     target_name = header[object_keyword]
+
+    y = []
+
+    peaks, _ = find_peaks(image[:,1000],prominence=10)
+    
+    plt.plot(np.arange(len(image[:,1000]))[peaks],image[:,1000][peaks], "x")
+    plt.plot(image[:,1000])
+    plt.show()
+    sky_reg = '10-20, 40-50'.split(',') #input('Identify sky region(s) e.g 20-30, 50-60: ').split(',')
+    for j in sky_reg:
+        low, up = [int(j) for j in j.split('-')]
+        plt.axvline(low,color='r',ls='--')
+        plt.axvline(up,color='r',ls='--')
+        [y.append(jj) for jj in np.arange(low,up)]
+
+    # plt.plot(image[:,1000])
+    # plt.show()
+    input()
 
     onedspec = np.zeros_like(trace)
     variancespec = np.zeros_like(trace)
@@ -1264,22 +1278,27 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
 
         #-- now do the sky fit
         itrace = int(trace[i])
-        y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
-                      np.arange(itrace+apwidth+skysep+1, itrace+apwidth+skysep+skywidth+1))
+        # y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
+        #               np.arange(itrace+apwidth+skysep+1, itrace+apwidth+skysep+skywidth+1))
+
+        # y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
+        #               np.arange(itrace+apwidth+skysep+1, itrace+apwidth+skysep+skywidth+1))
+
+        # print (type(y))
+        # print (y)
+        # input()
 
         z = image[y,i]
 
-        if sky is not True:
-
-            if (skydeg>0):
-                # fit a polynomial to the sky in this column
-                pfit = np.polyfit(y,z,skydeg)
-                # define the aperture in this column
-                ap = np.arange(trace[i]-apwidth, trace[i]+apwidth+1)
-                # evaluate the polynomial across the aperture, and sum
-                skysubflux[i] = np.sum(np.polyval(pfit, ap))
-            elif (skydeg==0):
-                skysubflux[i] = np.nanmean(z)*(apwidth*2.0 + 1)
+        if (skydeg>0):
+            # fit a polynomial to the sky in this column
+            pfit = np.polyfit(y,z,skydeg)
+            # define the aperture in this column
+            ap = np.arange(trace[i]-apwidth, trace[i]+apwidth+1)
+            # evaluate the polynomial across the aperture, and sum
+            skysubflux[i] = np.sum(np.polyval(pfit, ap))
+        elif (skydeg==0):
+            skysubflux[i] = np.nanmean(z)*(apwidth*2.0 + 1)
 
 
         #-- finally, compute the error in this pixel
@@ -1291,11 +1310,11 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
         # http://wise2.ipac.caltech.edu/staff/fmasci/ApPhotUncert.pdf
 
 
-        if sky is True:
-            fluxerr[i] = np.sqrt(np.sum((onedspec[i])/coaddN) +
-                                 (N_A + N_A**2. / N_B) * (sigB**2.))
-        else:
-            fluxerr[i] = np.sqrt(np.sum((onedspec[i]-skysubflux[i])/coaddN) +
+        # if sky is True:
+        #     fluxerr[i] = np.sqrt(np.sum((onedspec[i])/coaddN) +
+        #                          (N_A + N_A**2. / N_B) * (sigB**2.))
+        # else:
+        fluxerr[i] = np.sqrt(np.sum((onedspec[i]-skysubflux[i])/coaddN) +
                                  (N_A + N_A**2. / N_B) * (sigB**2.))
 
         #-- calculate variance spectrum
@@ -1316,58 +1335,29 @@ def ap_extract(image, trace, object_keyword, gain_keyword, readnoise_keyword,
     # plt.plot(onedspec,label='spec')
     # plt.plot(skysubflux,label='sky')
 
-    if sky is True:
-        smooth_spec = smooth(onedspec,3)
-    else:
-        smooth_spec = smooth(onedspec-skysubflux,3)
+    smooth_spec = smooth(onedspec-skysubflux,3)
 
+    
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1,2,1)
+    plt.plot(skysubflux,label='sky')
+    plt.plot(smooth_spec,label='spec')
+    plt.legend(loc='best')
+    plt.title('Extracted spectrum: '+ target_name)
+    plt.xlabel('Columns')
+    plt.ylabel('Intesity')
+    plt.subplot(1,2,2)
+    plt.title('S/N spectrum: '+ target_name)
+    plt.plot((onedspec-skysubflux)/np.sqrt(variancespec))
+    plt.ylabel('S/N')
+    plt.xlabel('Columns')
+    plt.savefig(target_name+'_'+file_name+'_Initial_1D_spectrum.png')
     if display is True:
-        plt.figure(figsize=(10, 5))
-        plt.subplot(1,2,1)
-        if sky is False:
-            plt.plot(skysubflux,label='sky')
-        plt.plot(smooth_spec,label='spec')
-        plt.legend(loc='best')
-        plt.title('Extracted spectrum: '+ target_name)
-        plt.xlabel('Columns')
-        plt.ylabel('Intesity')
-        plt.subplot(1,2,2)
-        plt.title('S/N spectrum: '+ target_name)
-        if sky is False:
-            plt.plot((onedspec-skysubflux)/np.sqrt(variancespec))
-        else:
-            plt.plot((onedspec)/np.sqrt(variancespec))
-        plt.ylabel('S/N')
-        plt.xlabel('Columns')
-        plt.savefig(target_name+'_'+file_name+'_Initial_1D_spectrum.png')
         plt.show()
-
-    if display is False:
-        plt.figure(figsize=(10, 5))
-        plt.subplot(1,2,1)
-        if sky is False:
-            plt.plot(skysubflux,label='sky')
-        plt.plot(smooth_spec,label='spec')
-        plt.legend(loc='best')
-        plt.title('Extracted spectrum:'+ target_name)
-        plt.xlabel('Columns')
-        plt.ylabel('Intesity')
-        plt.subplot(1,2,2)
-        plt.title('S/N spectrum: '+ target_name)
-        if sky is False:
-            plt.plot((onedspec-skysubflux)/np.sqrt(variancespec))
-        else:
-            plt.plot((onedspec)/np.sqrt(variancespec))
-        plt.ylabel('S/N')
-        plt.xlabel('Columns')
-        plt.savefig(target_name+'_'+file_name+'_Initial_1D_spectrum.png')
+    else:
         plt.close()
 
-    plt.close()
-    if sky is True:
-        return onedspec, fluxerr, variancespec, snr_spec
-    if sky is False:
-        return onedspec-skysubflux, fluxerr, variancespec, snr_spec
+    return onedspec-skysubflux, fluxerr, variancespec, snr_spec
 
 
 def redshift(w,z= 0.00093):    
