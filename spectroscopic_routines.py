@@ -2122,13 +2122,13 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
         return respfn, waves, ratios, w, std_spec, calspec
 
     try:
-        if len(data) == 3 :
+        if len(data) < 5 :
                 respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
                 respfn_optimal = None
-        elif (len(data) == 5) and (len(standard_spec) == 5):
+        elif (len(data) >= 5) and (len(standard_spec) >= 5):
             respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
             respfn_optimal, waves_optimal, ratios_optimal, w_optimal, std_spec_optimal, calspec_optimal = response(w_stand, opt_stand)
-        elif (len(data) == 5) and (len(standard_spec) == 3):
+        elif (len(data) >= 5) and (len(standard_spec) < 5):
             respfn, waves, ratios, w, std_spec, calspec = response(w_stand, sum_stand)
             respfn_optimal = None
 
