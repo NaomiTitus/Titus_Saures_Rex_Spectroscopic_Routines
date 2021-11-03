@@ -52,7 +52,7 @@ bias_output = 'Bias.fits'
 ## Master Flat Parameters ###
 #############################
 
-construct_flat = True
+construct_flat = False
 flat_keyword = 'FLAT' 
 flat_files_prefix = 't'
 flat_exp_time = 8.0
@@ -119,7 +119,6 @@ display_optimal = False
 ################################
 
 # apwidth = None
-sky_column = 500
 skysep = 5
 skywidth = 6
 skydeg = 0
@@ -317,6 +316,7 @@ if run_pipeline is True:
 	    			skysep = skysep, 
 	    			skywidth = skywidth, 
 	    			skydeg = skydeg,
+	    		    coaddN = coaddN,
 	    		    gain_keyword = gain_keyword,
 	    		    readnoise_keyword = readnoise_keyword,
 	    		    object_keyword = object_keyword,
