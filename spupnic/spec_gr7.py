@@ -52,7 +52,7 @@ bias_output = 'Bias.fits'
 ## Master Flat Parameters ###
 #############################
 
-construct_flat = False
+construct_flat = True
 flat_keyword = 'FLAT' 
 flat_files_prefix = 't'
 flat_exp_time = 8.0
@@ -118,11 +118,12 @@ display_optimal = False
 ##### Apextract Parameters #####
 ################################
 
-# apwidth = None
+column = None # When None will choose central cross section pixel, otherwise specify pixel number
 skysep = 5
 skywidth = 6
 skydeg = 0
 display_apextract = False
+interact = True
 
 ##########################################
 ##### Wavelength Solution Parameters #####
@@ -292,7 +293,7 @@ if run_pipeline is True:
 	    		    bigbox = bigbox, 
 	    		    Saxis = Saxis, 
 	    		    display = display_trace)
-	    		my, myfwhm, trace_c = trace_output
+	    		my, myfwhm, trace_c, poly = trace_output
 	    		if optimal_spec is True:
 	    			try:    
 	    				optimal_spec = optimal(
@@ -311,16 +312,19 @@ if run_pipeline is True:
 	    		#
 	    		onedspec, fluxerr, variancespec, snr_spec = ap_extract(
 	    			k, 
-	    			trace = my, 
+	    			trace = my,
+	    			poly = poly, 
 	    			apwidth = round(myfwhm), 
 	    			skysep = skysep, 
 	    			skywidth = skywidth, 
 	    			skydeg = skydeg,
-	    		    coaddN = coaddN,
+	    			column = column,
 	    		    gain_keyword = gain_keyword,
 	    		    readnoise_keyword = readnoise_keyword,
 	    		    object_keyword = object_keyword,
-	    		    display = display_apextract)
+	    		    spatial_axis = spatial_axis,
+	    		    display = display_apextract,
+	    		    interact = interact)
 	    		#
 	    		interact = wavelength(
 	    			onedspec,
