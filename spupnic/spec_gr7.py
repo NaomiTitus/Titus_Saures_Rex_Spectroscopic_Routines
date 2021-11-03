@@ -123,7 +123,7 @@ skysep = 5
 skywidth = 6
 skydeg = 0
 display_apextract = False
-interact = True
+interact = False
 
 ##########################################
 ##### Wavelength Solution Parameters #####
