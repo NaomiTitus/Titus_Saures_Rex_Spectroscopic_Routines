@@ -149,7 +149,7 @@ standard_reduced_spec = 'CD-32d9927_a2781019_reduced.dat'
 standard_file = 'fcd32d9927.dat'
 standard_name = 'cd-32-9927'
 
-# https://ftp.eso.org/pub/usg/standards/ctiostan/
+# https://ftp.eso.org/pub/usg/standards/ctiostan/ --> Download fluxcal standards here.
 
 ##########################################
 ############## Pipeline ##################
