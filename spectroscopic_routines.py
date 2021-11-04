@@ -2057,8 +2057,9 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
     # return interact
 
 
-def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
+def flux_callibration(standard_reduced_spec,standard_name,science_spec,standard_file,display):
     # https://www.eso.org/sci/observing/tools/standards/spectra/
+
     file_name = science_spec.split('.')[0].split('_reduced')[0]
     file_name_std = standard_reduced_spec.split('.')[0].split('_reduced')[0]
 
@@ -2090,21 +2091,22 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,display):
     # calspec = np.genfromtxt('fltt3218.dat', dtype=dtype)
 
     def response(w,f):
-        if standard_name == 'ltt3218':
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt3218.dat',dtype=dtype)
-        if standard_name == 'eg21':
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/feg21.dat',dtype=dtype)
-        if standard_name == 'ltt377':   #CD-34d241 was mistakenly named LTT 377 in Hamuy et al (1992 & 1994)
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd_34d241.dat',dtype=dtype)
-        if standard_name == 'feige110':  
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/ffeige110.dat',dtype=dtype)
-        if standard_name == 'cd-32-9927':  
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd32d9927.dat',dtype=dtype)
-        if standard_name == 'ltt7379':  
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7379.dat',dtype=dtype)
-        if standard_name == 'ltt7987':  
-            calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7987.dat',dtype=dtype)
+        # if standard_name == 'ltt3218':
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt3218.dat',dtype=dtype)
+        # if standard_name == 'eg21':
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/feg21.dat',dtype=dtype)
+        # if standard_name == 'ltt377':   #CD-34d241 was mistakenly named LTT 377 in Hamuy et al (1992 & 1994)
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd_34d241.dat',dtype=dtype)
+        # if standard_name == 'feige110':  
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/ffeige110.dat',dtype=dtype)
+        # if standard_name == 'cd-32-9927':  
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fcd32d9927.dat',dtype=dtype)
+        # if standard_name == 'ltt7379':  
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7379.dat',dtype=dtype)
+        # if standard_name == 'ltt7987':  
+        #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7987.dat',dtype=dtype)
         # fit a spline to the tabulated spectrum
+        calspec = np.genfromtxt(standard_file, dtype=dtype)
         t = np.arange(calspec['wav'][1], calspec['wav'][-2], np.int(np.median(calspec['dlam'])))
         # print (calspec['dlam'])
         stdflux = interpolate.InterpolatedUnivariateSpline(calspec['wav'], calspec['flux'])

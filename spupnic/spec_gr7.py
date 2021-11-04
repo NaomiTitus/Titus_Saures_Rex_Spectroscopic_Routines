@@ -144,6 +144,12 @@ display_wave = False
 ##########################################
 
 display_flux_cal = False
+science_spec = '*_reduced.dat' # Or provide a list: ['sfds.dat','sfsdf.dat'] or single file: asdfds.dat
+standard_reduced_spec = 'CD-32d9927_a2781019_reduced.dat'
+standard_file = 'fcd32d9927.dat'
+standard_name = 'cd-32-9927'
+
+# https://ftp.eso.org/pub/usg/standards/ctiostan/
 
 ##########################################
 ############## Pipeline ##################
@@ -350,44 +356,62 @@ if run_pipeline is True:
 
 
 
-if apply_flux_cal is True:
-	reduced_data_files = glob.glob('*reduced.dat')
-	standard = []
-	standard_name = []
-	for k in reduced_data_files:
-		if k.split('_')[0].lower() == 'ltt3218':
-			standard.append(k)
-			standard_name.append('ltt3218')
-		if k.split('_')[0].lower() == 'eg21':
-			standard.append(k)
-			standard_name.append('eg21')
-		if k.split('_')[0].lower() == 'ltt377':
-			standard.append(k)
-			standard_name.append('ltt377')
-		if k.split('_')[0].lower() == 'feige110':
-			standard.append(k)
-			standard_name.append('feige110')
-		if (k.split('_')[0].lower() == 'cd-32-9927') or (k.split('_')[0].lower() == 'cd-32d9927'):
-			standard.append(k)
-			standard_name.append('cd-32-9927')
-		if k.split('_')[0].lower() == 'ltt7379':
-			standard.append(k)
-			standard_name.append('ltt7379')
-		if k.split('_')[0].lower() == 'ltt7987':
-			standard.append(k)
-			standard_name.append('ltt7987')
+# if apply_flux_cal is True:
+# 	reduced_data_files = glob.glob('*reduced.dat')
+# 	standard = []
+# 	standard_name = []
+# 	for k in reduced_data_files:
+# 		if k.split('_')[0].lower() == 'ltt3218':
+# 			standard.append(k)
+# 			standard_name.append('ltt3218')
+# 		if k.split('_')[0].lower() == 'eg21':
+# 			standard.append(k)
+# 			standard_name.append('eg21')
+# 		if k.split('_')[0].lower() == 'ltt377':
+# 			standard.append(k)
+# 			standard_name.append('ltt377')
+# 		if k.split('_')[0].lower() == 'feige110':
+# 			standard.append(k)
+# 			standard_name.append('feige110')
+# 		if (k.split('_')[0].lower() == 'cd-32-9927') or (k.split('_')[0].lower() == 'cd-32d9927'):
+# 			standard.append(k)
+# 			standard_name.append('cd-32-9927')
+# 		if k.split('_')[0].lower() == 'ltt7379':
+# 			standard.append(k)
+# 			standard_name.append('ltt7379')
+# 		if k.split('_')[0].lower() == 'ltt7987':
+# 			standard.append(k)
+# 			standard_name.append('ltt7987')
 	
-	if len(standard) != None:
-		for k in reduced_data_files:
-			print (k)
-			flux_callibration(
-		    	standard_reduced_spec = standard[0], 
-		    	standard_name = standard_name[0], 
-		    	science_spec = k,
-		    	display = display_flux_cal)
-	else: 
-		print('Cannot perform flux callibration')
-	
+# 	if len(standard) != None:
+# 		for k in reduced_data_files:
+# 			print (k)
+# 			flux_callibration(
+# 		    	standard_reduced_spec = standard[0], 
+# 		    	standard_name = standard_name[0], 
+# 		    	science_spec = k,
+# 		    	display = display_flux_cal)
+# 	else: 
+# 		print('Cannot perform flux callibration')
+
+
+# Flux calibration
+
+if (type(science_spec) is str) and ('*' in science_spec):
+	files =  glob.glob(science_spec)
+elif type(science_spec) is list:
+	files = science_spec
+elif (type(science_spec) is str) and ('*' not in science_spec):
+	files =  [science_spec]
+
+for k in files:
+	flux_callibration(
+		science_spec = k,
+		standard_reduced_spec = standard_reduced_spec,
+		standard_name = standard_name,
+		standard_file = standard_file,
+		display = display_flux_cal)
+
 
 
 
