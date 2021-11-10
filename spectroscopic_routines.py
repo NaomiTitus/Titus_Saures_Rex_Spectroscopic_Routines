@@ -1122,63 +1122,43 @@ def ap_trace(image, object_keyword,
             #
             #
         if ap_spl is not None:
-            if display is True:
-                if mxbins is not None:
-                    plt.title('Gaussian fitted to trace of ' + target_name)
-                    # plt.legend(loc='best')
-                    plt.subplot(1, 2, 2)
-                    plt.title('Fitted centers of trace')
-                    plt.plot(mxbins,mybins,'k.')
-                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
-                    res = '%.1e' % ap_spl[4]
-                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-                    plt.xlabel('Column Number')
-                    plt.ylabel('Row Number')
-                    plt.legend(loc='best')
-                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+            if mxbins is not None:
+                plt.title('Gaussian fitted to trace of ' + target_name)
+                # plt.legend(loc='best')
+                plt.subplot(1, 2, 2)
+                plt.title('Fitted centers of trace')
+                plt.plot(mxbins,mybins,'k.')
+                plt.plot(mxbins,p(mxbins),'r:',label='fit')
+                res = '%.1e' % ap_spl[4]
+                plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
+                plt.xlabel('Column Number')
+                plt.ylabel('Row Number')
+                plt.legend(loc='best')
+                plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                if display is True:
                     plt.show()
-                #
-                show_image(img)
-                plt.autoscale(False)
-                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-                plt.plot(mx,my - myfwhm,'k',label='Trace width')
-                plt.plot(mx,my + myfwhm,'k')
-                # if manual_trace is True:
-                #     plt.plot(xbins,my_man,'r',label='Manual trace')
-                #     plt.plot(manual_x,manual_y,'or')
-                plt.legend(loc='best')
-                plt.title('Trace region of ' + target_name)
-                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
-                plt.show()
-                #
-            if display is False:
-                if mxbins is not None:
-                    plt.title('Gaussian fitted to trace of ' + target_name)
-                    # plt.legend(loc='best')
-                    plt.subplot(1, 2, 2)
-                    plt.title('Fitted centers of trace')
-                    plt.plot(mxbins,mybins,'k.')
-                    plt.plot(mxbins,p(mxbins),'r:',label='fit')
-                    res = '%.1e' % ap_spl[4]
-                    plt.plot(mxbins,p(mxbins),'r:',label='residuals = '+ str(res))
-                    plt.xlabel('Column Number')
-                    plt.ylabel('Row Number')
-                    plt.legend(loc='best')
-                    plt.savefig(target_name+'_'+ file_name +'_trace_fit.png')
+                if display is False:
+                    plt.clf()
                     plt.close()
-                #
-                show_image(img)
-                plt.autoscale(False)
-                plt.plot(mx,my,'b',lw=1,label='Fitted trace')
-                plt.plot(mx,my - myfwhm,'k',label='Trace width')
-                plt.plot(mx,my + myfwhm,'k')
-                plt.legend(loc='best')
-                plt.title('Trace region of ' + target_name)
-                plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+            #
+            show_image(img)
+            plt.autoscale(False)
+            plt.plot(mx,my,'b',lw=1,label='Fitted trace')
+            plt.plot(mx,my - myfwhm,'r',label='Trace width')
+            plt.plot(mx,my + myfwhm,'r')
+            # if manual_trace is True:
+            #     plt.plot(xbins,my_man,'r',label='Manual trace')
+            #     plt.plot(manual_x,manual_y,'or')
+            plt.legend(loc='best')
+            plt.title('Trace region of ' + target_name)
+            plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+            if display is True:
+                plt.show()
+            if display is False:
+                plt.clf()
                 plt.close()
                 #
-            plt.close()
-            #
+
     return my, myfwhm, ap_spl, p
 
 # my, myfwhm, trace_c = ap_trace(IMAGE, fmask=(1,), nsteps=5, interac=False,
@@ -1248,7 +1228,6 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         spatial_axis = 'Column'
         wav_axis = 'Row'
 
-    y = []
 
     if column is None:
         column = int(len(trace)*.5)
@@ -1279,22 +1258,38 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             plt.close()
     plot_sky_aperture(image,column,apwidth,ap_centre,skysep,skywidth,interact)
 
-    
-    def plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth):
+    y = []
+
+    def plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth,sky_reg_old=None):
         sky_reg = input('Identify sky region(s) e.g 20-30, 50-60 or n to leave unchanged: ').split(',')
         adjust_apwidth = input('Enter updated aperture width in pixels or n to leave unchanged: ')
         adjust_column = input('Enter updated cross section pixel number or n to leave unchanged: ' )
+        
+
         if adjust_apwidth != 'n':
             apwidth = float(adjust_apwidth)*.5
         if adjust_column != 'n':
             column = int(adjust_column)
         if sky_reg[0] != 'n':
+            # print (sky_reg)
+            # input()
+            sky_reg_old = []
+            if sky_reg_old is not None:
+                y = []
+            # print (sky_reg_old)
+            # input('1')
             for j in range(len(sky_reg)):
+                # print (sky_reg_old)
+                # input('2')
                 low, up = [int(sky_reg[j]) for sky_reg[j] in sky_reg[j].split('-')]
+                sky_reg_old.append([low,up])
                 [y.append(jj) for jj in np.arange(low,up)]
                 plt.axvspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
-                sky_reg = 'changed'
-        if sky_reg[0] == 'n':
+            sky_reg_s = 'changed'
+            print ('test 1')
+            input()
+                
+        elif (sky_reg[0] == 'n') and (sky_reg_old is None):
             plt.axvspan(ap_centre-apwidth-skysep-skywidth, 
             ap_centre-apwidth-skysep,
             color='b',
@@ -1304,7 +1299,18 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             ap_centre+apwidth+skysep,
             color='b',
             alpha=.1)
-            sky_reg = 'not changed'
+            sky_reg_s = 'not changed'
+            print ('test 2')
+            input()
+        elif (sky_reg[0] == 'n') and (sky_reg_old is not None):
+            for j in range(len(sky_reg_old)):
+                low, up = sky_reg_old[j]
+                # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
+                # [y.append(jj) for jj in np.arange(low,up)]
+                plt.axvspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+            sky_reg_s = 'changed'
+            print ('test 3')
+            input()
             #
         plt.plot(image[:,column],color='k',label=f'{wav_axis} number: {column}')
         ap_centre = np.arange(len(image[:,column]))[peaks[aperture]]
@@ -1318,12 +1324,56 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         plt.title(f'Aperture and sky region of {file_name} ({target_name}),\n Identify row numbers for sky region')
         adjust = input('Adjust again? (y/n) ')
         if adjust == 'y':
-            plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
-        return sky_reg
+            plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth,sky_reg_old)
+        if adjust == 'n':
+            plt.clf()
+            plt.close()
+            show_image(image)
+            plt.autoscale(False)
+            plt.plot(range(len(trace)),trace,'b',lw=1,label='Fitted trace')
+            plt.plot(range(len(trace)),trace - apwidth,'r',label='Aperture width')
+            plt.plot(range(len(trace)),trace + apwidth,'r',)
+            if (sky_reg[0] != 'n'):
+                for j in range(len(sky_reg)):
+                    # low, up = [int(sky_reg[j]) for sky_reg[j] in sky_reg[j].split('-')]
+                    # # [y.append(jj) for jj in np.arange(low,up)]
+                    # plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    low, up = sky_reg_old[j]
+                    # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
+                    plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    print ('test 1')
+                    input()
+            elif (sky_reg[0] == 'n') and (sky_reg_old is not None):
+                for j in range(len(sky_reg_old)):
+                    low, up = sky_reg_old[j]
+                    # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
+                    plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    print (low, up)
+                    print ('test 2')
+                    input()
+            elif (sky_reg[0] == 'n') and (sky_reg_old is None):
+                plt.axhspan(ap_centre-apwidth-skysep-skywidth, 
+                ap_centre-apwidth-skysep,
+                color='b',
+                alpha=.1, 
+                label='Sky')
+                plt.axhspan(ap_centre+apwidth+skysep+skywidth, 
+                ap_centre+apwidth+skysep,
+                color='b',
+                alpha=.1)
+                print ('test 3')
+                input()
+        
+            plt.legend(loc='best')
+            plt.title('Trace region of ' + target_name)
+            plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+            plt.show()
+
+        return sky_reg_s
 
     if interact is True:
-        sky_reg = plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
-        print (sky_reg)
+        sky_reg_s = plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
+        
 
     onedspec = np.zeros_like(trace)
     variancespec = np.zeros_like(trace)
@@ -1348,9 +1398,10 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         itrace = int(trace[i])
         # print (itrace)
         # input()
-        if (interact is False) or (sky_reg == 'not changed'):
+        if (interact is False) or (sky_reg_s == 'not changed'):
             y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
                           np.arange(itrace+apwidth+skysep, itrace+apwidth+skysep+skywidth))
+
         else:
             y = y 
 
@@ -1378,10 +1429,6 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         # http://wise2.ipac.caltech.edu/staff/fmasci/ApPhotUncert.pdf
 
 
-        # if sky is True:
-        #     fluxerr[i] = np.sqrt(np.sum((onedspec[i])/coaddN) +
-        #                          (N_A + N_A**2. / N_B) * (sigB**2.))
-        # else:
         fluxerr[i] = np.sqrt(np.sum((onedspec[i]-skysubflux[i])/coaddN) +
                                  (N_A + N_A**2. / N_B) * (sigB**2.))
 
@@ -1397,14 +1444,33 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         variancespec[i] = readnoise + image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()/gain
 
     snr_spec = (onedspec-skysubflux)/np.sqrt(variancespec) 
-
-
-    # print (test,test.shape)
-        
-    # plt.plot(onedspec,label='spec')
-    # plt.plot(skysubflux,label='sky')
-
     smooth_spec = smooth(onedspec-skysubflux,3)
+
+    if (interact is False) or (sky_reg == 'not changed'):
+        plt.clf()
+        plt.close()
+        show_image(image)
+        plt.autoscale(False)
+        plt.plot(range(len(trace)),trace,'b',lw=1,label='Fitted trace')
+        plt.plot(range(len(trace)),trace - apwidth,'r',label='Aperture width')
+        plt.plot(range(len(trace)),trace + apwidth,'r',)
+        plt.axhspan(ap_centre-apwidth-skysep-skywidth, 
+        ap_centre-apwidth-skysep,
+        color='b',
+        alpha=.1, 
+        label='Sky')
+        plt.axhspan(ap_centre+apwidth+skysep+skywidth, 
+        ap_centre+apwidth+skysep,
+        color='b',
+        alpha=.1)
+        
+        plt.legend(loc='best')
+        plt.title('Trace region of ' + target_name)
+        plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
+        if display is True:
+            plt.show()
+        if display is False:
+            plt.close()
 
     
     plt.figure(figsize=(10, 5))
