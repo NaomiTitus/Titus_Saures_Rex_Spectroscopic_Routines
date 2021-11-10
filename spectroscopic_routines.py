@@ -1235,7 +1235,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
     cwd = os.getcwd()
     data_dir = cwd
 
-    apwidth = int(apwidth*2)
+    apwidth = int(apwidth)
 
     file_name = image.split('.fits')[0]
     image, header = fits.getdata(os.path.join(data_dir,image), header=True) 
