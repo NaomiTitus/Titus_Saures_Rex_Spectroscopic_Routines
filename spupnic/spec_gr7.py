@@ -397,20 +397,21 @@ if run_pipeline is True:
 
 # Flux calibration
 
-if (type(science_spec) is str) and ('*' in science_spec):
-	files =  glob.glob(science_spec)
-elif type(science_spec) is list:
-	files = science_spec
-elif (type(science_spec) is str) and ('*' not in science_spec):
-	files =  [science_spec]
-
-for k in files:
-	flux_callibration(
-		science_spec = k,
-		standard_reduced_spec = standard_reduced_spec,
-		standard_name = standard_name,
-		standard_file = standard_file,
-		display = display_flux_cal)
+if apply_flux_cal is True:
+	if (type(science_spec) is str) and ('*' in science_spec):
+		files =  glob.glob(science_spec)
+	elif type(science_spec) is list:
+		files = science_spec
+	elif (type(science_spec) is str) and ('*' not in science_spec):
+		files =  [science_spec]
+	
+	for k in files:
+		flux_callibration(
+			science_spec = k,
+			standard_reduced_spec = standard_reduced_spec,
+			standard_name = standard_name,
+			standard_file = standard_file,
+			display = display_flux_cal)
 
 
 
