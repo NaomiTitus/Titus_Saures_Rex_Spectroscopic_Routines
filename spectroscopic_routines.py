@@ -1235,6 +1235,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
     cwd = os.getcwd()
     data_dir = cwd
 
+    apwidth = int(apwidth*2)
 
     file_name = image.split('.fits')[0]
     image, header = fits.getdata(os.path.join(data_dir,image), header=True) 
@@ -1312,6 +1313,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
     skysubflux = np.zeros_like(trace)
     fluxerr = np.zeros_like(trace)
 
+
     for i in range(0,len(trace)):
         #-- first do the aperture flux
         # juuuust in case the trace gets too close to the edge
@@ -1323,13 +1325,15 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             widthdn = trace[i] - 1
 
         # simply add up the total flux around the trace +/- width
-        onedspec[i] = image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()
+        onedspec[i] = image[int(trace[i]-widthdn):int(trace[i]+widthup), i].sum()
 
         #-- now do the sky fit
         itrace = int(trace[i])
+        # print (itrace)
+        # input()
         if interact is False:
             y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
-                          np.arange(itrace+apwidth+skysep+1, itrace+apwidth+skysep+skywidth+1))
+                          np.arange(itrace+apwidth+skysep, itrace+apwidth+skysep+skywidth))
         else:
             y = y 
 
@@ -1339,17 +1343,19 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             # fit a polynomial to the sky in this column
             pfit = np.polyfit(y,z,skydeg)
             # define the aperture in this column
-            ap = np.arange(trace[i]-apwidth, trace[i]+apwidth+1)
+            ap = np.arange(trace[i]-apwidth, trace[i]+apwidth)
             # evaluate the polynomial across the aperture, and sum
             skysubflux[i] = np.sum(np.polyval(pfit, ap))
+            # for j in range(2*apwidth):
+            #     skysub_twod[j,i]
         elif (skydeg==0):
-            skysubflux[i] = np.nanmean(z)*(apwidth*2.0 + 1)
+            skysubflux[i] = np.nanmean(z)*(apwidth*2.0)
 
 
         #-- finally, compute the error in this pixel
         sigB = np.std(z) # stddev in the background data
         N_B = len(y) # number of bkgd pixels
-        N_A = apwidth*2. + 1 # number of aperture pixels
+        N_A = apwidth*2. # number of aperture pixels
 
         # based on aperture phot err description by F. Masci, Caltech:
         # http://wise2.ipac.caltech.edu/staff/fmasci/ApPhotUncert.pdf
@@ -1372,6 +1378,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         elif type(readnoise_keyword) == float:
             readnoise = readnoise_keyword
         variancespec[i] = readnoise + image[int(trace[i]-widthdn):int(trace[i]+widthup+1), i].sum()/gain
+
     snr_spec = (onedspec-skysubflux)/np.sqrt(variancespec) 
 
 
