@@ -1278,19 +1278,33 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         else:
             plt.close()
     plot_sky_aperture(image,column,apwidth,ap_centre,skysep,skywidth,interact)
+
     
-    def plot_sky_aperture_inter(image,column,apwidth,ap_centre):
-        sky_reg = input('Identify sky region(s) e.g 20-30, 50-60: ').split(',')
+    def plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth):
+        sky_reg = input('Identify sky region(s) e.g 20-30, 50-60 or n to leave unchanged: ').split(',')
         adjust_apwidth = input('Enter updated aperture width in pixels or n to leave unchanged: ')
         adjust_column = input('Enter updated cross section pixel number or n to leave unchanged: ' )
         if adjust_apwidth != 'n':
             apwidth = float(adjust_apwidth)*.5
         if adjust_column != 'n':
             column = int(adjust_column)
-        for j in range(len(sky_reg)):
-            low, up = [int(sky_reg[j]) for sky_reg[j] in sky_reg[j].split('-')]
-            [y.append(jj) for jj in np.arange(low,up)]
-            plt.axvspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+        if sky_reg[0] != 'n':
+            for j in range(len(sky_reg)):
+                low, up = [int(sky_reg[j]) for sky_reg[j] in sky_reg[j].split('-')]
+                [y.append(jj) for jj in np.arange(low,up)]
+                plt.axvspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
+                sky_reg = 'changed'
+        if sky_reg[0] == 'n':
+            plt.axvspan(ap_centre-apwidth-skysep-skywidth, 
+            ap_centre-apwidth-skysep,
+            color='b',
+            alpha=.1, 
+            label='Sky')
+            plt.axvspan(ap_centre+apwidth+skysep+skywidth, 
+            ap_centre+apwidth+skysep,
+            color='b',
+            alpha=.1)
+            sky_reg = 'not changed'
             #
         plt.plot(image[:,column],color='k',label=f'{wav_axis} number: {column}')
         ap_centre = np.arange(len(image[:,column]))[peaks[aperture]]
@@ -1304,9 +1318,12 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         plt.title(f'Aperture and sky region of {file_name} ({target_name}),\n Identify row numbers for sky region')
         adjust = input('Adjust again? (y/n) ')
         if adjust == 'y':
-            plot_sky_aperture_inter(image,column,apwidth,ap_centre)
+            plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
+        return sky_reg
+
     if interact is True:
-        plot_sky_aperture_inter(image,column,apwidth,ap_centre)
+        sky_reg = plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
+        print (sky_reg)
 
     onedspec = np.zeros_like(trace)
     variancespec = np.zeros_like(trace)
@@ -1331,7 +1348,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         itrace = int(trace[i])
         # print (itrace)
         # input()
-        if interact is False:
+        if (interact is False) or (sky_reg == 'not changed'):
             y = np.append(np.arange(itrace-apwidth-skysep-skywidth, itrace-apwidth-skysep),
                           np.arange(itrace+apwidth+skysep, itrace+apwidth+skysep+skywidth))
         else:
