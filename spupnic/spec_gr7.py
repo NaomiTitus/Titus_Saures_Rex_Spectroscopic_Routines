@@ -209,27 +209,44 @@ if (construct_bias is True) or (construct_flat is True):
 
 if run_pipeline is True:
 
-	if type(IMAGES) is str:
-		IMAGES = glob.glob(IMAGES)
+
+	if (type(IMAGES) is str):
+		Im = glob.glob(IMAGES)
+
+		IMAGES = []
+		for k in Im:
+			if (image_header(k,identifying_keyword) == science_keyword) and \
+			(image_header(k,grating_keyword) == grating):
+				IMAGES.append(k)
+	elif type(IMAGES) is list:
+		IMAGES = IMAGES
+
+
+	ARC_IMAGES = []
 
 	if type(ARC) is int:
 		for i in IMAGES:
-			number = int(i.split('.')[0].split(raw_files_prefix)[1])
-		IMAGES.append(raw_files_prefix+str(number+ARC)+'.fits')
+			if (image_header(i,identifying_keyword) == science_keyword) and \
+			(image_header(i,grating_keyword) == grating):
+				number = int(i.split('.')[0].split(raw_files_prefix)[1])
+				ARC_IMAGES.append(raw_files_prefix+str(number+ARC)+'.fits')
 	if type(ARC) is str:
-		IMAGES.append(ARC)
+		ARC_IMAGES.append(ARC)
 	if type(ARC) is list:
 		for i in ARC:
-			IMAGES.append(i)
+			ARC_IMAGES.append(i)
 
 	IMAGES = list(set(IMAGES))
 
 	trim_images = []
 	
-	for k in IMAGES:
+	for k,j in zip(IMAGES,ARC_IMAGES):
 	    gr = image_header(k,grating_keyword)
 	    if gr == grating:
 	    	trim_images.append(k)
+	    gr = image_header(j,grating_keyword)
+	    if gr == grating:
+	    	trim_images.append(j)
 	#
 	for k in trim_images:
 	    trim(
