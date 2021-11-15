@@ -1323,27 +1323,40 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             plt.plot(range(len(trace)),trace + apwidth,'r',)
             if (sky_reg[0] != 'n'):
                 for j in range(len(sky_reg)):
-                    # low, up = [int(sky_reg[j]) for sky_reg[j] in sky_reg[j].split('-')]
-                    # # [y.append(jj) for jj in np.arange(low,up)]
-                    # plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
                     low, up = sky_reg_old[j]
-                    sky_dy = np.abs(low-up)
-                    sky_ap_dy = min([np.abs(ap_centre-low),np.abs(ap_centre-up)])
-                    # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
-                    # plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
-                    plt.fill_between(range(len(trace)),
-                        trace-sky_dy-sky_ap_dy, 
-                        trace-sky_ap_dy,
-                        color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    sky_dy = up-low
+                    if ap_centre - up < 0:
+                        sky_ap_dy = low - ap_centre
+                        plt.fill_between(range(len(trace)),
+                            trace+sky_ap_dy, 
+                            trace+sky_ap_dy+sky_dy,
+                            color='b',alpha=.1, label='Sky' if j == 0 else "")
+                        print ('test 1')
+                    if ap_centre - up > 0:
+                        sky_ap_dy = ap_centre-up
+                        plt.fill_between(range(len(trace)),
+                            trace-sky_ap_dy, 
+                            trace-sky_ap_dy-sky_dy,
+                            color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    
             elif (sky_reg[0] == 'n') and (sky_reg_old is not None):
                 for j in range(len(sky_reg_old)):
                     low, up = sky_reg_old[j]
-                    # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
-                    # plt.axhspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
-                    plt.fill_between(range(len(trace)),
-                                            trace-sky_dy-sky_ap_dy, 
-                                            trace-sky_ap_dy,
-                                            color='b',alpha=.1, label='Sky' if j == 0 else "")
+                    low, up = sky_reg_old[j]
+                    sky_dy = (up-low)
+                    if ap_centre - up < 0:
+                        sky_ap_dy = low - ap_centre
+                        plt.fill_between(range(len(trace)),
+                            trace+sky_ap_dy, 
+                            trace+sky_ap_dy+sky_dy,
+                            color='b',alpha=.1, label='Sky' if j == 0 else "")
+                        print ('test 1')
+                    if ap_centre - up > 0:
+                        sky_ap_dy = ap_centre-up
+                        plt.fill_between(range(len(trace)),
+                            trace-sky_ap_dy, 
+                            trace-sky_ap_dy-sky_dy,
+                            color='b',alpha=.1, label='Sky' if j == 0 else "")
             elif (sky_reg[0] == 'n') and (sky_reg_old is None):
                 plt.fill_between(range(len(trace)),trace-apwidth-skysep-skywidth, 
                 trace-apwidth-skysep,
@@ -1360,10 +1373,10 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             plt.savefig(target_name+'_'+ file_name +'_trace_fit2D.png')
             plt.show()
 
-        return sky_reg_s
+        return sky_reg_s, int(apwidth)
 
     if interact is True:
-        sky_reg_s = plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
+        sky_reg_s, apwidth = plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth)
         
 
     onedspec = np.zeros_like(trace)
@@ -1442,18 +1455,29 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         plt.close()
         show_image(image)
         plt.autoscale(False)
-        plt.plot(range(len(trace)),trace,'k',lw=1,label='Fitted trace')
+        plt.plot(range(len(trace)),trace,'r',ls='--',lw=1,label='Fitted trace')
         plt.plot(range(len(trace)),trace - apwidth,'r',label='Aperture width')
         plt.plot(range(len(trace)),trace + apwidth,'r',)
-        plt.axhspan(ap_centre-apwidth-skysep-skywidth, 
-        ap_centre-apwidth-skysep,
-        color='b',
-        alpha=.1, 
-        label='Sky')
-        plt.axhspan(ap_centre+apwidth+skysep+skywidth, 
-        ap_centre+apwidth+skysep,
-        color='b',
-        alpha=.1)
+
+
+        plt.fill_between(range(len(trace)),
+                                trace-apwidth-skysep-skywidth, 
+                                trace-apwidth-skysep,
+                                color='b',alpha=.1, label='Sky')
+        plt.fill_between(range(len(trace)),
+                                trace+apwidth+skysep,
+                                trace+apwidth+skysep+skywidth, 
+                                color='b',alpha=.1, label='Sky')
+
+        # plt.axhspan(ap_centre-apwidth-skysep-skywidth, 
+        # ap_centre-apwidth-skysep,
+        # color='b',
+        # alpha=.1, 
+        # label='Sky')
+        # plt.axhspan(ap_centre+apwidth+skysep+skywidth, 
+        # ap_centre+apwidth+skysep,
+        # color='b',
+        # alpha=.1)
         
         plt.legend(loc='best')
         plt.title('Trace region of ' + target_name)

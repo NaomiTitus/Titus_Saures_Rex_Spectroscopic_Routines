@@ -212,6 +212,18 @@ if run_pipeline is True:
 	if type(IMAGES) is str:
 		IMAGES = glob.glob(IMAGES)
 
+	if type(ARC) is int:
+		for i in IMAGES:
+			number = int(i.split('.')[0].split(raw_files_prefix)[1])
+		IMAGES.append(raw_files_prefix+str(number+ARC)+'.fits')
+	if type(ARC) is str:
+		IMAGES.append(ARC)
+	if type(ARC) is list:
+		for i in ARC:
+			IMAGES.append(i)
+
+	IMAGES = list(set(IMAGES))
+
 	trim_images = []
 	
 	for k in IMAGES:
@@ -269,8 +281,7 @@ if run_pipeline is True:
 
 	    		spec_file = IMAGES[kk].split('.fits')[0]
 	    		k = final_prefix+IMAGES[kk]
-	    		# print (k)
-	    		# input()
+	    	
 	    		try:
 	    		    image_raw, sky_subtracted, sky, xs, ys, nx, ny, yvals = twodsky(k,object_keyword=object_keyword)
 	    		    optimal_spec = True
