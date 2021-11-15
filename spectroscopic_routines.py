@@ -1331,7 +1331,6 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
                             trace+sky_ap_dy, 
                             trace+sky_ap_dy+sky_dy,
                             color='b',alpha=.1, label='Sky' if j == 0 else "")
-                        print ('test 1')
                     if ap_centre - up > 0:
                         sky_ap_dy = ap_centre-up
                         plt.fill_between(range(len(trace)),
