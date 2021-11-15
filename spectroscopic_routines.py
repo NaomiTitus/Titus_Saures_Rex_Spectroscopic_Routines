@@ -1262,16 +1262,16 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
     y = []
 
     def plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth,sky_reg_old=None):
-        sky_reg = input('Identify sky region(s) e.g 20-30, 50-60 or n to leave unchanged: ').split(',')
-        adjust_apwidth = input('Enter updated aperture width in pixels or n to leave unchanged: ')
-        adjust_column = input('Enter updated cross section pixel number or n to leave unchanged: ' )
+        sky_reg = input('Identify sky region(s) e.g 20-30, 50-60 or leave empty to leave unchanged: ').split(',')
+        adjust_apwidth = input('Enter updated aperture width in pixels or or leave empty to leave unchanged: ')
+        adjust_column = input('Enter updated cross section pixel number or or leave empty to leave unchanged: ' )
         
 
-        if adjust_apwidth != 'n':
+        if adjust_apwidth != '':
             apwidth = float(adjust_apwidth)*.5
-        if adjust_column != 'n':
+        if adjust_column != '':
             column = int(adjust_column)
-        if sky_reg[0] != 'n':
+        if sky_reg[0] != '':
             del y[:]
             sky_reg_old = []
             for j in range(len(sky_reg)):
