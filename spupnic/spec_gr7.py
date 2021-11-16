@@ -1,7 +1,7 @@
 from spectroscopic_routines import *
 
 run_pipeline = True
-apply_flux_cal = False
+apply_flux_cal = True
 
 raw_files_prefix = 'a'
 
