@@ -1281,7 +1281,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
                 plt.axvspan(low, up,color='b',alpha=.1, label='Sky' if j == 0 else "")
             sky_reg_s = 'changed'
                 
-        elif (sky_reg[0] == 'n') and (sky_reg_old is None):
+        elif (sky_reg[0] == '') and (sky_reg_old is None):
             plt.axvspan(ap_centre-apwidth-skysep-skywidth, 
             ap_centre-apwidth-skysep,
             color='b',
@@ -1292,7 +1292,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             color='b',
             alpha=.1)
             sky_reg_s = 'not changed'
-        elif (sky_reg[0] == 'n') and (sky_reg_old is not None):
+        elif (sky_reg[0] == '') and (sky_reg_old is not None):
             for j in range(len(sky_reg_old)):
                 low, up = sky_reg_old[j]
                 # low, up = [int(sky_reg_old[j]) for sky_reg_old[j] in sky_reg_old[j].split('-')]
@@ -1321,7 +1321,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
             plt.plot(range(len(trace)),trace,'r',ls='--',lw=1,label='Fitted trace')
             plt.plot(range(len(trace)),trace - apwidth,'r',label='Aperture width')
             plt.plot(range(len(trace)),trace + apwidth,'r',)
-            if (sky_reg[0] != 'n'):
+            if (sky_reg[0] != ''):
                 for j in range(len(sky_reg)):
                     low, up = sky_reg_old[j]
                     sky_dy = up-low
@@ -1338,7 +1338,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
                             trace-sky_ap_dy-sky_dy,
                             color='b',alpha=.1, label='Sky' if j == 0 else "")
                     
-            elif (sky_reg[0] == 'n') and (sky_reg_old is not None):
+            elif (sky_reg[0] == '') and (sky_reg_old is not None):
                 for j in range(len(sky_reg_old)):
                     low, up = sky_reg_old[j]
                     low, up = sky_reg_old[j]
@@ -1349,14 +1349,14 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
                             trace+sky_ap_dy, 
                             trace+sky_ap_dy+sky_dy,
                             color='b',alpha=.1, label='Sky' if j == 0 else "")
-                        print ('test 1')
+                        # print ('test 1')
                     if ap_centre - up > 0:
                         sky_ap_dy = ap_centre-up
                         plt.fill_between(range(len(trace)),
                             trace-sky_ap_dy, 
                             trace-sky_ap_dy-sky_dy,
                             color='b',alpha=.1, label='Sky' if j == 0 else "")
-            elif (sky_reg[0] == 'n') and (sky_reg_old is None):
+            elif (sky_reg[0] == '') and (sky_reg_old is None):
                 plt.fill_between(range(len(trace)),trace-apwidth-skysep-skywidth, 
                 trace-apwidth-skysep,
                 color='b',
@@ -1466,7 +1466,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
         plt.fill_between(range(len(trace)),
                                 trace+apwidth+skysep,
                                 trace+apwidth+skysep+skywidth, 
-                                color='b',alpha=.1, label='Sky')
+                                color='b',alpha=.1)
 
         # plt.axhspan(ap_centre-apwidth-skysep-skywidth, 
         # ap_centre-apwidth-skysep,
