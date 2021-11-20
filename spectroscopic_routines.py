@@ -42,7 +42,7 @@ def show_image(image, lower=-1, upper=3, extent=None):
     vmin = sample.mean() + lower * sample.std()
     vmax = sample.mean() + upper * sample.std()
     plt.figure(figsize=(15, 7))
-    plt.imshow(image, origin='lower', cmap='gray', aspect='auto', vmin=vmin, vmax=vmax, extent=extent)
+    plt.imshow(image, origin='lower', cmap='gray', aspect='auto', vmin=vmin, vmax=vmax, extent=extent,interpolation='nearest')
     plt.xlabel('Column Number')
     plt.ylabel('Row Number')
 
