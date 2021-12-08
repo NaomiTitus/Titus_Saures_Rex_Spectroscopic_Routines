@@ -2669,8 +2669,12 @@ def smoothing(file,wavelength_keyword,spectrum_keyword,out_file,window=3,sigma=N
 
     df = pd.read_csv(file,delimiter=' ')
     if (type(wavelength_keyword) is not str) or (type(spectrum_keyword) is not str):
-        w = df.columns[wavelength_keyword]
-        f = df.columns[spectrum_keyword]
+        w, f = np.loadtxt(file,usecols=(wavelength_keyword,spectrum_keyword),unpack=True)
+        # w = df.columns[wavelength_keyword]
+        # f = df.columns[spectrum_keyword]
+        df = pd.DataFrame(list(zip(w,f)))
+        w = wavelength_keyword
+        f = spectrum_keyword
     else:
         w = wavelength_keyword
         f =  spectrum_keyword
