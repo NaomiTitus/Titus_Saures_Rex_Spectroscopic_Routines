@@ -1515,7 +1515,7 @@ def redshift(w,z= 0.00093):
 
 
 def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,arc_file,reference_spec,line_list,trace,trace_fwhm,
-    prominence,parameter_file,order,object_keyword,snr_spec=None,flip_wave_axis=False,view_arc=False,display=False):
+    prominence,parameter_file,order,object_keyword,std_factor=3,snr_spec=None,flip_wave_axis=False,view_arc=False,display=False):
     """
     1. Apply wavelength solution to onedspec from apextract.
     2. Fits a polynomial to interpolate between supplied column numbers and wavelength space
@@ -1850,11 +1850,11 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
         sample.sort()
         sample = sample[int(0.1 * sample.size) : int(0.9 * sample.size + 0.5)]    
         std = np.std(sample, ddof=1)
-        w = wfit 
-        w[wfit] = (np.abs(lamp_lines['wavres'][wfit]) < (5 * std))
+        w = wfit
+        w[wfit] = (np.abs(lamp_lines['wavres'][wfit]) < (std_factor * std))
         if w.sum() != lamp_lines.size:
             # re-fit with outliers rejected
-            coeff, revcoeff = get_wavelength_solution(lamp_lines[w], order=order)
+            coeff, revcoeff, fit_wav_more, lamp_lines_more = get_wavelength_solution(lamp_lines[w], order=order)
             
             # reset wavelength residuals using new coefficients
             fit_wav = np.polyval(coeff, lamp_lines['x'])
@@ -1862,7 +1862,9 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
             lamp_lines['wavres'] = wavres
             
         lamp_lines['used'] = w
-        return coeff, revcoeff
+        # print (fit_wav, lamp_lines['used'], lamp_lines['wav'][lamp_lines['used']])
+        # input()
+        return coeff, revcoeff, fit_wav[lamp_lines['used']], lamp_lines['wav'][lamp_lines['used']]
             
     def check_wavelength_solution(lamp_spec, lamp_lines, coeff):    
         wavs = col_to_wav(coeff, np.arange(lamp_spec.size))
@@ -1912,7 +1914,7 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
 
 
 
-    coeff, revcoeff = get_wavelength_solution(lamp_lines, order=order)
+    coeff, revcoeff, fit_wav_more, lamp_lines_more = get_wavelength_solution(lamp_lines, order=order)
     
     # apply the wavelength solution to the column numbers
     wavs = col_to_wav(coeff, np.arange(lamp_spec.size))
@@ -1921,42 +1923,11 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
     # print (coeff)
     # print (lamp_spec)
     # input('Enter')
-    
-
-    # if display is True:
-    #     # plot the initial wavelength calibrated spectrum
-    #     plt.close()
-    #     plt.figure(figsize=(15, 7))
-    #     plt.plot(wavs, lamp_spec, c='g', lw=2, label='Arc spectrum')
-    #     # plot the reference spectrum in red
-    #     plt.plot(lamp_ref['wav'], lamp_ref['counts'], label='Reference', c='r')
-    #     plt.xlim(wav1, wav2)
-    #     plt.xlabel('Wavelength ($\AA$)'); plt.ylabel('Counts')
-    #     mark_matched(lamp_lines)
-    #     plt.legend(loc='best')
-    #     plt.title('Polynomial fitting order: '+ str(order))
-    #     plt.savefig(target_name+'_'+file_name+'_traced_arc.png')
-    #     plt.show()
-
-    # if display is False:
-    #     # plot the initial wavelength calibrated spectrum
-    #     plt.close()
-    #     plt.figure(figsize=(15, 7))
-    #     plt.plot(wavs, lamp_spec, c='g', lw=2, label='Arc spectrum')
-    #     # plot the reference spectrum in red
-    #     plt.plot(lamp_ref['wav'], lamp_ref['counts'], label='Reference', c='r')
-    #     plt.xlim(wav1, wav2)
-    #     plt.xlabel('Wavelength ($\AA$)'); plt.ylabel('Counts')
-    #     mark_matched(lamp_lines)
-    #     plt.legend(loc='best')
-    #     plt.title('Polynomial fitting order: '+ str(order))
-    #     plt.savefig(target_name+'_'+file_name+'_traced_arc.png')
-    #     plt.close()
 
 
     # check for more matches in the range already fit
     def match_more(lamp_lines, linelist, order=4, tol=2):
-        coeff, revcoeff = get_wavelength_solution(lamp_lines, order=order)
+        coeff, revcoeff, fit_wav_more, lamp_lines_more = get_wavelength_solution(lamp_lines, order=order)
         wfit = np.isfinite(lamp_lines['wav'])
         minwav = lamp_lines['wav'][wfit].min()
         maxwav = lamp_lines['wav'][wfit].max()
@@ -1973,29 +1944,10 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
                 set_line_identity(lamp_lines, linelist, line['x'], refwav)
     
 
-    # match_more(lamp_lines, linelist, order=order)
-    # # re-fit with a higher order
-
-    # coeff, revcoeff = get_wavelength_solution(lamp_lines, order=4)
-    # wavs = col_to_wav(coeff, np.arange(lamp_spec.size))
-
-    # # check the supposed matches
-    # col1, col2 = np.polyval(revcoeff, [wav1, wav2])
-    # refcols = match_to_list(lamp_lines['x'], rough_cols, plt=None)
-    # for col, wav in zip(refcols, refwavs):
-    #     set_line_identity(lamp_lines, linelist, col, wav)
-        
-    # # auto-match more lines
-    # match_more(lamp_lines, linelist)
-    
-    # # re-fit
-    # coeff, revcoeff = get_wavelength_solution(lamp_lines, order=4)
-    # check_wavelength_solution(lamp_spec, lamp_lines, coeff)
-
     match_more(lamp_lines, linelist, order=order)
     # re-fit with a higher order
 
-    coeff_more, revcoeff_more = get_wavelength_solution(lamp_lines, order=4)
+    coeff_more, revcoeff_more, fit_wav_more, lamp_lines_more = get_wavelength_solution(lamp_lines, order=4)
     wavs_more = col_to_wav(coeff_more, np.arange(lamp_spec.size))
 
     # check the supposed matches
@@ -2008,7 +1960,7 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
     match_more(lamp_lines, linelist)
     
     # re-fit
-    coeff_more, revcoeff_more = get_wavelength_solution(lamp_lines, order=4)
+    coeff_more, revcoeff_more, fit_wav_more, lamp_lines_more = get_wavelength_solution(lamp_lines, order=4)
     check_wavelength_solution(lamp_spec, lamp_lines, coeff_more)
 
 
@@ -2022,9 +1974,12 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
         plt.savefig(target_name+'_'+file_name+'_wavelength_sol.png')
         plt.close()
 
+
+
     w = lamp_lines['used']
     std = np.std(lamp_lines['wavres'][w], ddof=1)
     print(f'STD of wavelength residual is {std:0.2} Angstrom')
+
     
     # f = open('ref_cuar_gr7_162.dat','w')
     # for i in range(len(wavs)):
@@ -2120,6 +2075,14 @@ def wavelength(onedspec_sum,onedspec_optimal,spec_file_name,wave_min,wave_max,ar
                 spec_smooth_sum[ii],
                 snr_spec[ii]))
         f.close()
+
+    # plt.plot(fit_wav_more-lamp_lines_more,'.',label='STD = {}'.format(np.round(std,2)))
+    # plt.legend(loc=1)
+    # plt.show()
+
+    df = pd.DataFrame(list(zip(lamp_lines['col'][w],fit_wav_more,lamp_lines_more)),
+        columns=['Pixel','Lamp lines','Fitted lines'])
+    df.to_csv('{}_{}_wav_sol.dat'.format(target_name,file_name),sep=' ',index=False)
 
     return interact
 
@@ -2489,8 +2452,14 @@ def normalise(file,wavelength_keyword,spectrum_keyword,exclude_range,interactive
     '''
     df = pd.read_csv(file,delimiter=' ')
     if (type(wavelength_keyword) is not str) or (type(spectrum_keyword) is not str):
-        w = df.columns[wavelength_keyword]
-        f = df.columns[spectrum_keyword]
+        # w = df.columns[wavelength_keyword]
+        # f = df.columns[spectrum_keyword]
+        w, f = np.loadtxt(file,usecols=(wavelength_keyword,spectrum_keyword),unpack=True)
+        # w = df.columns[wavelength_keyword]
+        # f = df.columns[spectrum_keyword]
+        df = pd.DataFrame(list(zip(w,f)))
+        w = wavelength_keyword
+        f = spectrum_keyword
     else:
         w = wavelength_keyword
         f =  spectrum_keyword

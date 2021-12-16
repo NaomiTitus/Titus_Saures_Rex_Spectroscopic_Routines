@@ -135,6 +135,7 @@ wave_min = 3500
 wave_max = 8500 
 prominence = 400 
 order = 3
+std_factor = 3 # STD factor to exclude matched lines
 parameter_file = 'parameters_new'
 view_arc = False
 display_wave = False
@@ -374,6 +375,7 @@ if run_pipeline is True:
 	    		    wave_max = wave_max, 
 	    		    prominence = prominence, 
 	    		    order = order,
+	    		    std_factor = std_factor,
 	    		    parameter_file = parameter_file,
 	    		    object_keyword = object_keyword,
 	    		    flip_wave_axis = flip_wave_axis,

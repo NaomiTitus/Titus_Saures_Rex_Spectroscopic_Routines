@@ -91,10 +91,12 @@ display_optimal = False
 ##### Apextract Parameters #####
 ################################
 
+column = None # When None will choose central cross section pixel, otherwise specify pixel number
 skysep = 5
 skywidth = 10
 skydeg = 0
 display_apextract = False
+interact = False
 
 ##########################################
 ##### Wavelength Solution Parameters #####
@@ -106,6 +108,7 @@ wave_min = 3800
 wave_max = 9200 
 prominence = 10 
 order = 2
+std_factor = 3 # STD factor to exclude matched lines
 parameter_file = 'parameters_new'
 view_arc = False
 display_wave = False
@@ -256,6 +259,7 @@ if run_pipeline is True:
 	    		    wave_max = wave_max, 
 	    		    prominence = prominence, 
 	    		    order = order,
+	    		    std_factor = std_factor,
 	    		    parameter_file = parameter_file,
 	    		    object_keyword = object_keyword,
 	    		    flip_wave_axis = flip_wave_axis,
