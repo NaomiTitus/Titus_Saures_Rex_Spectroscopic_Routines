@@ -2186,8 +2186,10 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,standard_
             & (np.abs(waves - 6900) > 40) \
             & (np.abs(waves - 6563) > 40) \
         # fit a spline to the ratios to determine the response function
+        # print (waves-7650)
+        # input()
         t = waves[w][1:-2:25]
-        respfn = LSQUnivariateSpline(waves[w], ratios[w], t)
+        respfn = LSQUnivariateSpline(waves[w], ratios[w], t,k=1)
         return respfn, waves, ratios, w, std_spec, calspec
 
     try:
