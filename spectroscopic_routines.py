@@ -1263,7 +1263,7 @@ def ap_extract(image, trace, poly, object_keyword, gain_keyword, readnoise_keywo
 
     def plot_sky_aperture_inter(image,column,apwidth,ap_centre,skysep,skywidth,sky_reg_old=None):
         sky_reg = input('Identify sky region(s) e.g 20-30, 50-60 or leave empty to leave unchanged: ').split(',')
-        adjust_apwidth = input('Enter updated aperture width in pixels or or leave empty to leave unchanged: ')
+        adjust_apwidth = input('Enter updated trace width in pixels or or leave empty to leave unchanged: ')
         adjust_column = input('Enter updated cross section pixel number or or leave empty to leave unchanged: ' )
         
 
