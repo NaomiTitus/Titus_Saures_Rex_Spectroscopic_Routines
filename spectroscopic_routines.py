@@ -434,7 +434,7 @@ def twodsky(image,object_keyword):
         x, y, weights = x[wsort], y[wsort], weights[wsort]
     
         # set locations for spline knots
-        t = np.linspace(x.min() + 1, x.max() - 1, np.int(x.max() - x.min()))
+        t = np.linspace(x.min() + 1, x.max() - 1, np.int32(x.max() - x.min()))
         spl = LSQUnivariateSpline(x, y, t, weights)
         return x, y, spl
     
@@ -2174,7 +2174,7 @@ def flux_callibration(standard_reduced_spec,standard_name,science_spec,standard_
         #     calspec = np.genfromtxt('ftp://ftp.eso.org/pub/stecf/standards/ctiostan/fltt7987.dat',dtype=dtype)
         # fit a spline to the tabulated spectrum
         calspec = np.genfromtxt(standard_file, dtype=dtype)
-        t = np.arange(calspec['wav'][1], calspec['wav'][-2], np.int(np.median(calspec['dlam'])))
+        t = np.arange(calspec['wav'][1], calspec['wav'][-2], np.int32(np.median(calspec['dlam'])))
         # print (calspec['dlam'])
         stdflux = interpolate.InterpolatedUnivariateSpline(calspec['wav'], calspec['flux'])
         std_spec = f
